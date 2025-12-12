@@ -9,16 +9,39 @@ interface IOpsUser {
   Title?: string,
   EmailAddress?: string,
   MobileDevicePin?: string,
-  TrackLicense?: string,
-  FieldEmployeeLicense?: string,
+  TrackLicense?: LicenseType,
+  FieldEmployeeLicense?: "Full" | "None",
   MobileEmailAddress?: string,
-  ScheduleLicense?: string,
-  MaintainMechanicLicense?: string,
-  MaintainManagerLicense?: string,
+  ScheduleLicense?: LicenseType,
+  MaintainMechanicLicense?: LicenseType,
+  MaintainManagerLicense?: LicenseType,
   Notes?: string,
   IntegrationMapping?: string
   ObjectID?: string // Only exists on created Users
 }
+
+interface IOpsUserRow {
+  "Business Unit Name": string,
+  "Windows Account Name": string,
+  "First Name": string,
+  "Last Name": string,
+  IsInactive: boolean
+  EmployeeId: string,
+  "Employee Integration Key": string,
+  Title: string,
+  "Email Address": string,
+  "Mobile Device Pin": string,
+  "Track License": LicenseType,
+  "Field Employee License": "Full" | "None",
+  "Mobile Email Address": string,
+  "Schedule License": LicenseType,
+  "Maintain Mechanic License": LicenseType,
+  "Maintain Manager License": LicenseType,
+  Notes: string,
+  "Integration Mapping": string,
+}
+
+type LicenseType = "Full" | "ReadOnly" | "None"
 
 function CreateUsers() {
   const {token, baseUrl} = authenticate();
