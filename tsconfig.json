@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+   
+    "target": "ES2022", 
+    "lib": ["ES2022"],
+
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    
+    "moduleResolution": "bundler", 
+    "allowSyntheticDefaultImports": true, 
+    
+    "strict": true, 
+    "noImplicitAny": true, 
+    
+    "noUnusedLocals": true, 
+    "noUnusedParameters": true, 
+    "noImplicitReturns": true, 
+    "noFallthroughCasesInSwitch": true,
+    
+    "sourceMap": true,
+    "plugins": [
+      {
+        "name": "typescript-plugin-tgas-local",
+        "apps_script_directory": "./src"
+      }
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}
