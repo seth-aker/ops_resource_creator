@@ -1,0 +1,37 @@
+interface IEmployeeDTO {
+  EmployeeID: string,
+  IntegrationKey?: string,
+  BusinessUnitUniqueName: string,
+  FirstName?: string,
+  MiddleInitial?: string,
+  LastName: string,
+  IsInactive?: boolean,
+  NickName?: string,
+  HomePhone?: string,
+  CellPhone?: string,
+  WorkPhone?: string,
+  EmailAddress?: string,
+  MobileEmailAddress?: string,
+  ReviewerPIN?: string,
+  MobileDevicePIN?: string,
+  NotificationType?: string,
+  Notes?: string,
+  DefaultLaborTypeID?: string,
+  DefaultLaborTypeIntegrationKey?: string,
+  LaborTypes?: {
+    LaborTypeID: string
+    IntegrationKey?: string
+  }[],
+  JobTitle?: string,
+  IsFieldEmployee?: boolean,
+  IsFieldReviewer?: boolean,
+  IsForeman?: boolean,
+  IsProjectManager?: boolean,
+  IsBuyer?: boolean,
+  IsPurchaseOrderApprover?: boolean,
+  IsSupervisor?: boolean,
+  IsOptedInForSMS?: boolean,
+  IsDriver?: boolean,
+  IsMechanic?: boolean,
+  IsTruckDriver?: boolean
+}

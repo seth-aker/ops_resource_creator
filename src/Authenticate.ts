@@ -1,12 +1,20 @@
-
 interface IUserVariables extends Record<string, string> {
   baseUrl: string,
   clientID: string,
   clientSecret: string,
   userName: string,
   password: string,
-  serverName: string,
+  sqlListener: string,
   dbName: string
+}
+interface ITemplateWithVars extends GoogleAppsScript.HTML.HtmlTemplate {
+  baseUrl: string,
+  clientID: string,
+  userName: string,
+  sqlListener: string,
+  dbName: string,
+  hasPassword: boolean, //indicates whether the user has a password stored
+  hasClientSecret: boolean
 }
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -17,8 +25,17 @@ function onOpen() {
     .addToUi()
 }
 function requestUserProperties() {
-  const html = HtmlService.createHtmlOutputFromFile('SetUserProperties')
-  SpreadsheetApp.getUi().showModalDialog(html, "Set Environment Variables")
+  const template = HtmlService.createTemplateFromFile('SetUserProperties') as ITemplateWithVars
+  const userProperties = PropertiesService.getUserProperties();
+  const props = userProperties.getProperties()
+  template.baseUrl = props['baseUrl']
+  template.clientID = props['clientID']
+  template.userName = props['userName']
+  template.sqlListener = props['sqlListener']
+  template.dbName = props['dbName']
+  template.hasPassword = userProperties.getProperty('password') ? true : false // Warning, this gets passed as a string 'true' or 'false'
+  template.hasClientSecret = userProperties.getProperty('clientSecret') ? true : false
+  SpreadsheetApp.getUi().showModalDialog(template.evaluate(), "Set Environment Variables")
 }
 function clearUserProperties() {
   PropertiesService.getUserProperties().deleteAllProperties()
@@ -26,11 +43,27 @@ function clearUserProperties() {
 }
 function viewUserProperties() {
   const props = PropertiesService.getUserProperties().getProperties() as IUserVariables
-  SpreadsheetApp.getUi().alert(`Current API Properties: \nBase URL: ${props.baseUrl}\nClientID: ${props.clientID}\nUsername: ${props.userName}\nServer Name: ${props.serverName}\nDatabase Name: ${props.dbName}`)
+  SpreadsheetApp.getUi().alert(`Current API Properties: \nBase URL: ${props.baseUrl}\nClientID: ${props.clientID}\nUsername: ${props.userName}\nSql Listener: ${props.sqlListener}\nDatabase Name: ${props.dbName}`)
 }
 function setUserVariables(vars: IUserVariables) {
+  for(const key of Object.keys(vars)) {
+    vars[key].trim();
+  }
+  const userProperties = PropertiesService.getUserProperties();
   try {
-    PropertiesService.getUserProperties().setProperties(vars)
+    if(vars.password === "********") {
+      vars.password = userProperties.getProperty('password') ?? ""
+    }
+    if(vars.clientSecret === "********") {
+      vars.clientSecret = userProperties.getProperty('clientSecret') ?? ""
+    }
+    if(!vars.baseUrl.toLowerCase().includes("estapi_")) {
+      const splitUrl = vars.baseUrl.split("/")
+      let companyName = splitUrl[splitUrl.length - 1];
+      splitUrl[splitUrl.length - 1] = `ESTAPI_${companyName}`;
+      vars.baseUrl = splitUrl.join("/");
+    }
+    userProperties.setProperties(vars)
   } catch (err) {
     SpreadsheetApp.getUi().alert(`An error occured setting properties: ${err}`)
     throw err
@@ -88,8 +121,9 @@ function _getToken(baseUrl: string, credentials: Credentials) {
     password: credentials.password
   }
   const options = {
-    'method': 'get' as const,
-    'headers': tokenHeader
+    method: 'get' as const,
+    headers: tokenHeader,
+    muteHttpExceptions: true
   };
   try {
     const response = UrlFetchApp.fetch(`${baseUrl}/login`, options);
@@ -112,7 +146,22 @@ function _getToken(baseUrl: string, credentials: Credentials) {
 function authenticate(): {token: string, baseUrl: string} {
   // use to get bearer token
   const spreadsheetVars = _getUserVariables()
-  if(!spreadsheetVars) throw new Error("Missing API_Information!")
+  if(!spreadsheetVars) throw new Error("Missing API Properties!")
   const token = _getToken(spreadsheetVars.baseUrl, spreadsheetVars)
   return {token, baseUrl: spreadsheetVars.baseUrl}
+}
+
+function validateAuthentication() {
+  const {token, baseUrl} = authenticate();
+  const options = {
+    method: 'get' as const,
+    headers: createHeaders(token),
+    muteHttpExceptions: true
+  }
+  try {
+    fetchWithRetries(`${baseUrl}/Estimate/schema`, options)
+  } catch (error) {
+    Logger.log(error);
+    throw error;
+  }
 }

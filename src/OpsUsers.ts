@@ -68,7 +68,7 @@ function CreateUsers() {
   })
 
   try {
-    const responses = batchFetch(batchOptions);
+    const responses = batchFetch(batchOptions, 0, "Creating Users");
     responses.forEach((response, index) => {
       const responseCode = response.getResponseCode()
       if(responseCode === 409 || responseCode === 200) {
