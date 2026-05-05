@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+</head>
+
+<body>
+  <form id="user-properties-form">
+    <div style="display: flex; flex-direction: column; padding-bottom: 10px;">
+      <label for="base-url">BaseUrl</label>
+      <input id="base-url" name="baseUrl" type="text" placeholder="e.g. https://b2w-eus00.b2w.trimble.com/OPSAPI_CustomerName" required />
+
+      <label for="clientID">ClientID</label>
+      <input id="clientID" name="clientID" type="text" placeholder="API Client ID" required />
+
+      <label for="clientSecret">Client Secret</label>
+      <input id="clientSecret" name="clientSecret" type="password" required placeholder="API Client Secret"/>
+    </div>
+    <div style="display: flex; flex-direction: row;">
+      <button id="submit" type="submit" form="user-properties-form">Set Database Properties</button>
+      <div style="margin-left: 10px;" id="response"></div>
+    </div>
+  </form>
+</body>
+<script>
+  function handleSubmit(formElement) {
+    submitButton.disabled = true
+    const baseUrl = formElement.querySelector('input[name="baseUrl"]').value
+    const clientID = formElement.querySelector('input[name="clientID"]').value
+    const clientSecret = formElement.querySelector('input[name="clientSecret"]').value
+    document.getElementById('response').innerText = 'Setting Variables...'
+    google.script.run
+      .withSuccessHandler(handleSetSuccess)
+      .withFailureHandler(handleError)
+      .setUserVariables({
+        baseUrl,
+        clientID,
+        clientSecret
+      })
+  }
+  function handleSetSuccess() {
+    document.getElementById('response').innerText = 'Validating Authentication...'
+    google.script.run
+      .withSuccessHandler(handleValidateSuccess)
+      .withFailureHandler(handleError)
+      .validateAuthentication()
+  }
+  function handleValidateSuccess() {
+    document.getElementById('response').innerText = "API properties successfully set."
+  }
+  function handleError(error) {
+    document.getElementById('response').innerText = `An error occured setting user properties. Error: ${error.message}`
+    submitButton.disabled = false
+  }
+  function resetErrorMessage() {
+    submitButton.disabled = false
+    document.getElementById('response').innerText = ""
+  }
+  const inputElements = document.getElementsByTagName("input")
+  Array.from(inputElements).forEach((element) => {
+    element.addEventListener('change', resetErrorMessage)
+  })
+  const form = document.getElementById('user-properties-form')
+  const submitButton = document.getElementById('submit')
+
+  function setup() {
+    const baseUrl = "<?= baseUrl ?>";
+    const userName = "<?= userName ?>";
+    const clientID = "<?= clientID ?>";
+    const sqlListener = "<?= sqlListener ?>";
+    const dbName = "<?= dbName ?>";
+    const hasPassword = "<?= hasPassword ?>"
+    const hasClientSecret = "<?= hasClientSecret ?>";
+
+    form.querySelector('input[name="baseUrl"]').value = baseUrl;
+    form.querySelector('input[name="username"]').value = userName;
+    if(hasPassword === 'true') {
+      form.querySelector('input[name="password"]').value = "********"
+    }
+    if(hasClientSecret === "true") {
+      form.querySelector('input[name="clientSecret"]').value = "********"
+    }
+    form.querySelector('input[name="clientID"]').value = clientID;
+    form.querySelector('input[name="sqlListener"]').value = sqlListener;
+    form.querySelector('input[name="dbName"]').value = dbName;
+    form.addEventListener('submit', (event) => {
+      event.preventDefault()
+      handleSubmit(form)
+    })
+  }
+
+  window.addEventListener('load', () => {
+    setup();
+  })
+</script>
+
+</html>
