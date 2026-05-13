@@ -18,7 +18,7 @@
       <input id="clientSecret" name="clientSecret" type="password" required placeholder="API Client Secret"/>
     </div>
     <div style="display: flex; flex-direction: row;">
-      <button id="submit" type="submit" form="user-properties-form">Set Database Properties</button>
+      <button id="submit" type="submit" form="user-properties-form">Set Ops Properties</button>
       <div style="margin-left: 10px;" id="response"></div>
     </div>
   </form>
@@ -33,7 +33,7 @@
     google.script.run
       .withSuccessHandler(handleSetSuccess)
       .withFailureHandler(handleError)
-      .setUserVariables({
+      .setOpsVariables({
         baseUrl,
         clientID,
         clientSecret
@@ -44,13 +44,13 @@
     google.script.run
       .withSuccessHandler(handleValidateSuccess)
       .withFailureHandler(handleError)
-      .validateAuthentication()
+      .validateOpsAuthentication()
   }
   function handleValidateSuccess() {
     document.getElementById('response').innerText = "API properties successfully set."
   }
   function handleError(error) {
-    document.getElementById('response').innerText = `An error occured setting user properties. Error: ${error.message}`
+    document.getElementById('response').innerText = `An error occured setting user properties. ${error.message}`
     submitButton.disabled = false
   }
   function resetErrorMessage() {
@@ -66,24 +66,14 @@
 
   function setup() {
     const baseUrl = "<?= baseUrl ?>";
-    const userName = "<?= userName ?>";
     const clientID = "<?= clientID ?>";
-    const sqlListener = "<?= sqlListener ?>";
-    const dbName = "<?= dbName ?>";
-    const hasPassword = "<?= hasPassword ?>"
     const hasClientSecret = "<?= hasClientSecret ?>";
 
     form.querySelector('input[name="baseUrl"]').value = baseUrl;
-    form.querySelector('input[name="username"]').value = userName;
-    if(hasPassword === 'true') {
-      form.querySelector('input[name="password"]').value = "********"
-    }
     if(hasClientSecret === "true") {
       form.querySelector('input[name="clientSecret"]').value = "********"
     }
     form.querySelector('input[name="clientID"]').value = clientID;
-    form.querySelector('input[name="sqlListener"]').value = sqlListener;
-    form.querySelector('input[name="dbName"]').value = dbName;
     form.addEventListener('submit', (event) => {
       event.preventDefault()
       handleSubmit(form)

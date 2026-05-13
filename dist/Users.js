@@ -1,0 +1,81 @@
+"use strict";
+const LICENSE_MAP = {
+    "None": "None",
+    "Read Only": "ReadOnly",
+    "Full Access": "Full"
+};
+function CreateUsers() {
+    try {
+        setIsScriptFinished(false);
+        clearScriptProgress();
+        openProgressSidebar("Creating Users");
+        logEvent("Starting Create Users Script");
+        const token = getOpsToken();
+        const baseUrl = PropertiesService.getUserProperties().getProperty('opsBaseUrl');
+        if (!baseUrl)
+            throw new Error("Base Url is missing!");
+        const userData = getSpreadSheetData('Users').filter(row => row["Business Unit"]);
+        if (!userData || userData.length === 0) {
+            SpreadsheetApp.getUi().alert("No data found to send!");
+            clearScriptProgress();
+            return;
+        }
+        const url = baseUrl + "/user";
+        const headers = createHeaders(token);
+        const userDTOs = userData.map((row) => {
+            return createUserDTO(row);
+        });
+        const batchOptions = userDTOs.map(row => {
+            const options = {
+                url,
+                method: 'post',
+                headers,
+                payload: JSON.stringify(row),
+                muteHttpExceptions: true
+            };
+            return options;
+        });
+        logEvent("Uploading users...");
+        const results = batchFetch(batchOptions);
+        const failedRows = [];
+        results.forEach((result, idx) => {
+            const code = result.getResponseCode();
+            if (code >= 400) {
+                failedRows.push(idx);
+                Logger.log(`${code} Error: ${result.getContentText()}`);
+            }
+        });
+        if (failedRows.length > 0) {
+            highlightRows(failedRows.map(each => each + 2), 'red');
+            const errorMessages = failedRows.map(idx => JSON.parse(results[idx].getContentText())?.CustomMessage);
+            const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`);
+            logEvent(`Some rows failed!\n${failedResults.join('\n')}`);
+        }
+        logEvent("Script Complete!");
+        SpreadsheetApp.getUi().alert("Script Complete!");
+        setIsScriptFinished(true);
+    }
+    catch (err) {
+        setIsScriptFinished(true);
+        throw err;
+    }
+}
+function createUserDTO(row) {
+    return {
+        BusinessUnitUniqueName: row["Business Unit"],
+        FirstName: row["First Name"],
+        LastName: row["Last Name"],
+        IsInactive: row["Is Inactive?"],
+        EmployeeID: row["Employee ID"],
+        Title: row.Title,
+        MobileEmailAddress: row["TID / Mobile Email Address"],
+        Notes: row.Notes,
+        TrackLicense: row["Track License"] ? LICENSE_MAP[row["Track License"]] : undefined,
+        FieldEmployeeLicense: row["Field Employee License"] ? LICENSE_MAP[row["Field Employee License"]] : undefined,
+        ScheduleLicense: row["Schedule License"] ? LICENSE_MAP[row["Schedule License"]] : undefined,
+        MaintainMechanicLicense: row["Maintain Mechanic License"] ? LICENSE_MAP[row["Maintain Mechanic License"]] : undefined,
+        MaintainManagerLicense: row["Mantain Manager License"] ? LICENSE_MAP[row["Mantain Manager License"]] : undefined,
+        EmployeeIntegrationKey: row["Employee Integration Key"],
+        IntegrationMapping: row["Integration Mapping"]
+    };
+}
