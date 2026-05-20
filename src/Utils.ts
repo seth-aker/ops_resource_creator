@@ -1,6 +1,6 @@
 const DEFAULT_BATCH_SIZE = 100;
 const MAX_RETRIES = 5;
-
+const MAX_CACHE_SIZE = 100000; //100kb per key
 interface IBatchProgress {
   totalItems: number,
   completedItems: number,
@@ -63,8 +63,8 @@ function batchFetch(batchOptions: (string | GoogleAppsScript.URL_Fetch.URLFetchR
       if(res.getResponseCode() > 299) {
         failedCount++
       }
-      responses.push(...batchRes)
     })
+    responses.push(...batchRes)
     logBatchProgress({
       failedCount,
       completedItems: responses.length - failedCount,
@@ -100,28 +100,36 @@ function _fetchAllWithRetries(batchOptions: (string | GoogleAppsScript.URL_Fetch
 }
 
 function logEvent(message: string) {
-  const userService = PropertiesService.getUserProperties()
-  const raw = userService.getProperty('scriptEvents')
-  const events: string[] = raw ? JSON.parse(raw) : []
+  const service = CacheService.getUserCache();
+  const raw = service.get('scriptEvents');
+  const events: string[] = raw ? JSON.parse(raw) : [];
   events.push(message);
-  userService.setProperty('scriptEvents', JSON.stringify(events))
+
+  let jsonString = JSON.stringify(events);
+  let byteLength = Utilities.newBlob(jsonString).getBytes().length;
+
+  while (byteLength > MAX_CACHE_SIZE && events.length > 0) {
+    events.shift();
+    jsonString = JSON.stringify(events);
+    byteLength = Utilities.newBlob(jsonString).getBytes().length;
+  }
 }
 function getBatchProgress() {
-  const userService = PropertiesService.getUserProperties()
-  const raw: string | null = userService.getProperty('batchProgress');
+  const userService = CacheService.getUserCache()
+  const raw: string | null = userService.get('batchProgress');
   const current = raw ? JSON.parse(raw) : {} as IBatchProgress; 
   return current as IBatchProgress
 }
 function logBatchProgress(progress: Partial<IBatchProgress>) {
-  const userService = PropertiesService.getUserProperties()
-  const raw: string | null = userService.getProperty('batchProgress');
+  const userService = CacheService.getUserCache()
+  const raw: string | null = userService.get('batchProgress');
   const current: IBatchProgress = raw ? JSON.parse(raw) : {} ;
-  userService.setProperty('batchProgress', JSON.stringify({...current, ...progress}))
+  userService.put('batchProgress', JSON.stringify({...current, ...progress}))
 }
 
 function getScriptProgress() {
-  const userService = PropertiesService.getUserProperties()
-  const properties = userService.getProperties();
+  const userService = CacheService.getUserCache()
+  const properties = userService.getAll(["batchProgress", "scriptEvents", "scriptFinished"]);
   const batchProgress: IBatchProgress = properties.batchProgress ? JSON.parse(properties.batchProgress) : {} as IBatchProgress
   const scriptEvents: string[] = properties.scriptEvents ? JSON.parse(properties.scriptEvents): []
   const scriptFinished: boolean = properties.scriptFinished ? JSON.parse(properties.scriptFinished) : false;
@@ -132,9 +140,9 @@ function getScriptProgress() {
   }
 }
 function clearScriptProgress() {
-  const userService = PropertiesService.getUserProperties()
-  userService.deleteProperty('batchProgress')
-  userService.deleteProperty('scriptEvents')
+  const userService = CacheService.getUserCache()
+  userService.remove('batchProgress')
+  userService.remove('scriptEvents')
 }
 
 function openProgressSidebar(title: string) {
@@ -149,7 +157,6 @@ function highlightRows(rowIndices: number[], color: string) {
   const rowGroups = new Map<number, number>();
   let groupStart = rowIndices[0];
   let groupEnd = rowIndices[rowIndices.length - 1];
-  rowGroups.set(groupStart, groupEnd);
   for(let i = 0; i < rowIndices.length - 1; i++) {
     if(rowIndices[i + 1] !== rowIndices[i] + 1) { // if there are entries between rows that did not fail
       groupEnd = rowIndices[i];
@@ -170,5 +177,5 @@ function highlightRows(rowIndices: number[], color: string) {
 }
 
 function setIsScriptFinished(isFinished: boolean) {
-  PropertiesService.getUserProperties().setProperty('scriptFinished', JSON.stringify(isFinished))
+  CacheService.getUserCache().put('scriptFinished', JSON.stringify(isFinished))
 }

@@ -9,11 +9,10 @@ interface IRawUserData {
   "Track License"?: TRawLicenseType,
   "Field Employee License"?: TRawFieldEmpLicenseType
   "Schedule License"?: TRawLicenseType
-  "Mantain Manager License"?: TRawLicenseType,
+  "Maintain Manager License"?: TRawLicenseType,
   "Maintain Mechanic License"?: TRawLicenseType,
   "Employee Integration Key"?: string,
-  "Integration Mapping"?: string,
-  "Is Inactive?": boolean
+  "Integration Mapping"?: string
 }
 
 interface IUserDTO {
@@ -54,7 +53,7 @@ function CreateUsers() {
     const token = getOpsToken()
     const baseUrl = PropertiesService.getUserProperties().getProperty('opsBaseUrl');
     if(!baseUrl) throw new Error("Base Url is missing!");
-    const userData = getSpreadSheetData<IRawUserData>('Users').filter(row => row["Business Unit"])
+    const userData = getSpreadSheetData<IRawUserData>('Users')
     if(!userData || userData.length === 0) {
       SpreadsheetApp.getUi().alert("No data found to send!")
       clearScriptProgress();
@@ -108,7 +107,7 @@ function createUserDTO(row: IRawUserData) {
     BusinessUnitUniqueName: row["Business Unit"],
     FirstName: row["First Name"],
     LastName: row["Last Name"],
-    IsInactive: row["Is Inactive?"],
+    IsInactive: false,
     EmployeeID: row["Employee ID"],
     Title: row.Title,
     MobileEmailAddress: row["TID / Mobile Email Address"],
@@ -117,7 +116,7 @@ function createUserDTO(row: IRawUserData) {
     FieldEmployeeLicense: row["Field Employee License"] ? LICENSE_MAP[row["Field Employee License"]] : undefined,
     ScheduleLicense: row["Schedule License"] ? LICENSE_MAP[row["Schedule License"]] : undefined,
     MaintainMechanicLicense: row["Maintain Mechanic License"] ? LICENSE_MAP[row["Maintain Mechanic License"]] : undefined,
-    MaintainManagerLicense: row["Mantain Manager License"] ? LICENSE_MAP[row["Mantain Manager License"]] : undefined,
+    MaintainManagerLicense: row["Maintain Manager License"] ? LICENSE_MAP[row["Maintain Manager License"]] : undefined,
     EmployeeIntegrationKey: row["Employee Integration Key"],
     IntegrationMapping: row["Integration Mapping"]
   } as IUserDTO
