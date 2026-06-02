@@ -88,6 +88,7 @@ function _fetchAllWithRetries(batchOptions: (string | GoogleAppsScript.URL_Fetch
   })
 
   if(retryCount <= MAX_RETRIES && retries.length > 0) {
+    Utilities.sleep(250)
     const batchProgress = getBatchProgress()
     logEvent(`${retries.length} items timed out in batch ${batchProgress.completedBatches + 1}. Retrying...`)
     const retryResponses = _fetchAllWithRetries(retries, retryCount + 1);
@@ -98,21 +99,16 @@ function _fetchAllWithRetries(batchOptions: (string | GoogleAppsScript.URL_Fetch
 
   return responses;
 }
-
-function logEvent(message: string) {
-  const service = CacheService.getUserCache();
-  const raw = service.get('scriptEvents');
-  const events: string[] = raw ? JSON.parse(raw) : [];
-  events.push(message);
-
-  let jsonString = JSON.stringify(events);
-  let byteLength = Utilities.newBlob(jsonString).getBytes().length;
-
-  while (byteLength > MAX_CACHE_SIZE && events.length > 0) {
-    events.shift();
-    jsonString = JSON.stringify(events);
-    byteLength = Utilities.newBlob(jsonString).getBytes().length;
+function fetchWithRetries(url: string, options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions, retryCount: number = 0) {
+  let response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+  if(responseCode === 500 && retryCount < MAX_RETRIES) {
+    const urlWithoutQuery = url.includes('?') ? url.split("?")[0] : url; // this doesn't account for question marks in a url (non-url encoded), but should be fine in the B2W context
+    logEvent(`The call to ${urlWithoutQuery} timed out. Retrying...`)
+    Utilities.sleep(250)
+    response = fetchWithRetries(url, options, retryCount + 1);
   }
+  return response;
 }
 function getBatchProgress() {
   const userService = CacheService.getUserCache()
@@ -144,7 +140,10 @@ function clearScriptProgress() {
   userService.remove('batchProgress')
   userService.remove('scriptEvents')
 }
-
+function setCurrentScript(name: string) {
+  const service = PropertiesService.getUserProperties();
+  service.setProperty('currentScript', name);
+}
 function openProgressSidebar(title: string) {
   const html = HtmlService.createHtmlOutputFromFile("ScriptProgressSidebar")
     .setTitle(title)

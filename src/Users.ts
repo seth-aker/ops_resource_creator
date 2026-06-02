@@ -47,6 +47,7 @@ function CreateUsers() {
   try { 
     setIsScriptFinished(false);
     clearScriptProgress()
+    setCurrentScript("CreateUsers")
     openProgressSidebar("Creating Users");
 
     logEvent("Starting Create Users Script")
@@ -88,10 +89,10 @@ function CreateUsers() {
     })
     
     if(failedRows.length > 0) {
-      highlightRows(failedRows.map(each => each + 2), 'red');
-      const errorMessages = failedRows.map(idx => JSON.parse(results[idx].getContentText())?.CustomMessage)
+      const errorMessages = failedRows.map(idx => `${results[idx].getResponseCode()} Error: ${results[idx].getContentText()}`)
       const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
-      logEvent(`Some rows failed!\n${failedResults.join('\n')}`)
+      logEvent([`Some rows failed!:`, ...failedResults])
+      highlightRows(failedRows.map(each => each + 2), 'red');
     }
     logEvent("Script Complete!")
     SpreadsheetApp.getUi().alert("Script Complete!")

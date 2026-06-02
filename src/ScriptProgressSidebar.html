@@ -5,6 +5,15 @@
   <meta charset="UTF-8">
 </head>
 <style>
+  html {
+    height: calc(100% - 16px);
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
   h3 {
     margin-top: 0px;
     margin-bottom: 16px;
@@ -14,7 +23,11 @@
     margin-bottom: 8px;
   }
   #event-log {
-    margin-top: 8px
+    margin-top: 8px;
+    min-height: 300px;
+    height: 100%;
+    overflow-y: scroll;
+    overscroll-behavior: contain;
   }
 </style>
 <body>
@@ -47,12 +60,11 @@
   function updateProgress(batchProgress) {
     const batchComplete = Number.parseInt(batchProgress.completedBatches ?? "0") 
     const totalBatches = Number.parseInt(batchProgress.totalBatches ?? "0")
-    const totalItems = Number.parseInt(batchProgress.totalItems ?? "0")
+    const totalItems = Number.parseInt(batchProgress.totalItems ?? "1")
     const completedItems = Number.parseInt(batchProgress.completedItems ?? "0")
     const failedItems = Number.parseInt(batchProgress.failedCount ?? "0")
 
     const percentComplete = Math.round(((completedItems + failedItems) / totalItems) * 100)
-    
     batchProgressEl.innerText = `Batches Complete: ${batchComplete} of ${totalBatches}`
     progressBarLabel.innerText = `Percent Complete: ${percentComplete}%`
     progressBar.value = percentComplete;
