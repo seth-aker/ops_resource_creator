@@ -14,7 +14,6 @@
     "sourceMap": false,
 
     // Stricter Typechecking Options
-    "exactOptionalPropertyTypes": true,
 
     // Style Options
     // "noImplicitOverride": true,

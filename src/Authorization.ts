@@ -83,3 +83,9 @@ function setOpsVariables(vars: {baseUrl: string, clientSecret: string, clientID:
 function validateOpsAuthentication() {
   getOpsToken();
 }
+
+function getBaseURL() {
+  const baseUrl = PropertiesService.getUserProperties().getProperty("opsBaseUrl")
+  if(!baseUrl) throw new Error("Base Url is missing!");
+  return baseUrl;
+}

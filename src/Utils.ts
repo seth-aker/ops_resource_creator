@@ -8,6 +8,20 @@ interface IBatchProgress {
   completedBatches: number,
   failedCount: number
 }
+
+interface IPagination {
+  CurrentPage: string,
+  ItemsOnPage: number,
+  NextPage?: string,
+  PageSize: number,
+  PreviousPage?: string,
+  TotalItems: number
+}
+
+interface IGetResponse<T> {
+  Items: T[],
+  Pagination: IPagination
+}
 function getSpreadSheetData<T>(spreadsheet: string) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(spreadsheet);
   if(!sheet) throw new Error(`Could not find spreadsheet: "${spreadsheet}"`)
@@ -110,6 +124,25 @@ function fetchWithRetries(url: string, options: GoogleAppsScript.URL_Fetch.URLFe
   }
   return response;
 }
+
+function getDatabaseItems<T>(url: string, options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions) {
+  const items: T[] = []
+
+  const res = fetchWithRetries(url, options)
+  if(res.getResponseCode() > 299) {
+    writeLogToSpreadsheet(`An error occured fetching items from the database: ${res.getContentText()}`)
+    throw new Error(`An error occured fetching items from the database: ${res.getContentText()}`)
+  }
+
+  const body = JSON.parse(res.getContentText()) as IGetResponse<T>
+  items.push(...body.Items)
+  if(body.Pagination.NextPage) {
+    const nextPageItems = getDatabaseItems<T>(body.Pagination.NextPage, options)
+    items.push(...nextPageItems)
+  }
+  return items;
+}
+
 function getBatchProgress() {
   const userService = CacheService.getUserCache()
   const raw: string | null = userService.get('batchProgress');

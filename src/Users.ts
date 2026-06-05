@@ -53,12 +53,10 @@ function CreateUsers() {
     logEvent("Starting Create Users Script")
     const token = getOpsToken()
     const baseUrl = PropertiesService.getUserProperties().getProperty('opsBaseUrl');
-    if(!baseUrl) throw new Error("Base Url is missing!");
+    
     const userData = getSpreadSheetData<IRawUserData>('Users')
     if(!userData || userData.length === 0) {
-      SpreadsheetApp.getUi().alert("No data found to send!")
-      clearScriptProgress();
-      return;
+     
     }
 
     const url = baseUrl + "/user"
@@ -84,7 +82,7 @@ function CreateUsers() {
       const code = result.getResponseCode();
       if(code >= 400) {
         failedRows.push(idx);
-        Logger.log(`${code} Error: ${result.getContentText()}`)
+        writeLogToSpreadsheet(`${code} Error: ${result.getContentText()}`)
       }
     })
     
