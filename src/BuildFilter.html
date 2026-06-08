@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    #app {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 900px;
+      width: 100%;
+      margin: 20px auto;
+      color: #333;
+    }
+
+    .query-output-container {
+      background-color: rgb(198, 198, 198);
+      padding: 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      word-wrap: break-word;
+      width: calc(100% - 32px);
+    }
+
+    .query-override-input {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: rgb(198, 198, 198);
+      color: #333;
+      padding: 16px;
+      border-width: 0;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      word-wrap: break-word;
+      width: calc(100% - 32px);
+    }
+
+    .root-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: start;
+      flex-direction: column;
+    }
+
+    .app-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .override-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 24px;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-primary:hover {
+      background-color: #2563eb;
+    }
+
+    .query-builder {
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #333;
+      max-width: 800px;
+    }
+
+    .filter-group {
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background-color: #fcfcfc;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      overflow: hidden;
+    }
+
+    .filter-group .filter-group {
+      margin: 10px 0 10px 24px;
+      background-color: #f4f6f8;
+      border-color: #d1d5db;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .filter-group .filter-group .filter-group {
+      background-color: #eef2f6;
+      border-left-color: #8b5cf6;
+    }
+
+    .group-header {
+      background-color: #f0f4f8;
+      padding: 10px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .group-items {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-rule {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #ffffff;
+      border: 1px solid #e5e7eb;
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
+
+    .filter-select,
+    .filter-input {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .filter-select:focus,
+    .filter-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn {
+      padding: 6px 12px;
+      background-color: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background-color: #f3f4f6;
+    }
+
+    .btn-remove {
+      color: #ef4444;
+      border-color: #fca5a5;
+    }
+
+    .btn-remove:hover:not(:disabled) {
+      background-color: #fef2f2;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <h3>Build a filter for getting data from a B2W Database</h3>
+    <details
+      style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; border-radius: 6px; font-family: system-ui, -apple-system, sans-serif;">
+      <summary style="cursor: pointer; font-size: 1em; outline: none;">
+        Instructions
+      </summary>
+
+      <div style="margin-top: 15px;">
+        <p>A filter Rule is comprised of 3 elements: <b>Filter By, Operator, and Value.</b></p>
+        <ul>
+          <li><b>Filter By:</b> The data column that is filterable for the given database table. For example:
+            BusinessUnitUniqueName</li>
+          <li><b>Operator:</b> The method used to match data in the database.</li>
+          <li><b>Value:</b> The value to search with.</li>
+        </ul>
+
+        <p>If the builder is not flexible enough for the needs of a particular request, simply check the Query Override
+          button and edit the query yourself. The syntax used is <a
+            href="https://learn.microsoft.com/en-us/odata/concepts/queryoptions-overview" target="_blank">OData Query
+            Syntax</a>.</p>
+
+        <p><b>Groups:</b></p>
+        <p>A filter group takes multiple filters and groups them together with a <b>Join</b> operator. This allows you
+          to
+          join multiple filters together. If there are multiple rules in a group, they will be joined together with the
+          join
+          operator and separated from other groups via parenthesis.</p>
+
+        <p><b>Example:</b></p>
+        <div style="background-color: #f4f6f8; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+          <p style="margin-top: 0;">Imagine you need to find specific equipment in the system. You are looking for
+            either a
+            <strong>D6 Dozer in Business Unit A</strong> OR a <strong>Medium Excavator in Business Unit B</strong>.
+          </p>
+          <ul style="margin-bottom: 0;">
+            <li><strong>Group 1:</strong> (Equipment Type = ' D6 Dozer' <strong>AND</strong> BusinessUnit = 'A')</li>
+            <li><strong>Group 2:</strong> (Equipment Type = 'Meduiom Excavator' <strong>AND</strong> BusinessUnit = 'B')
+            </li>
+          </ul>
+          <p style="margin-bottom: 0; margin-top: 10px;">By joining these two groups with an <strong>OR</strong>
+            operator,
+            the database knows exactly what combinations are acceptable. Without groups, the system might get confused
+            and
+            search for a machine that is simultaneously a Dozer and an Excavator.</p>
+        </div>
+
+
+      </div>
+    </details>
+    <details
+      style="margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; border-radius: 6px; font-family: system-ui, -apple-system, sans-serif;">
+      <summary style="cursor: pointer; font-size: 1em; outline: none;">Operator Legend</summary>
+      <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
+        <li style="display: flex; margin-bottom: 4px;"><b style="width: 35px; display: inline-block;">=</b>
+          <span>Equals</span>
+        </li>
+        <li style="display: flex; margin-bottom: 4px;"><b style="width: 35px; display: inline-block;">!=</b> <span>Is
+            not
+            equal to</span></li>
+        <li style="display: flex; margin-bottom: 4px;"><b style="width: 35px; display: inline-block;">&gt;</b>
+          <span>Is
+            greater than</span>
+        </li>
+        <li style="display: flex; margin-bottom: 4px;"><b style="width: 35px; display: inline-block;">&gt;=</b>
+          <span>Is
+            greater than or equal to</span>
+        </li>
+        <li style="display: flex; margin-bottom: 4px;"><b style="width: 35px; display: inline-block;">&lt;</b>
+          <span>Is
+            less than</span>
+        </li>
+        <li style="display: flex; margin-bottom: 0;"><b style="width: 35px; display: inline-block;">&lt;=</b> <span>Is
+            less than or equal to</span></li>
+      </ul>
+    </details>
+    <h5 style="margin-bottom: 0.5em;">Query String</h5>
+    <input ref="query-override-ref" id="query-override-input" class="query-override-input" v-if="isOverrideOn"
+      type="text" v-model="queryOverride" />
+    <div class="query-output-container" v-else>{{ computedQuery }}</div>
+    <div class="root-controls">
+      <select class="filter-select" :disabled="isOverrideOn" v-if="groups.length > 1" v-model="joinedBy">
+        <option selected value="and">AND</option>
+        <option value="or">OR</option>
+        <option value="not">NOT</option>
+      </select>
+      <button class="btn" :disabled="isOverrideOn" @click="groups.push({
+      id: `group${groups.length}`,
+      type: 'group',
+      items: [{
+        id: `i0`,
+        type: 'rule',
+        filterBy: {
+          type: 'string',
+          value: ''
+        },
+        filterOperator: 'eq',
+        filterValue: ''
+      }],
+      joinedBy: 'and'
+    })">Add Group</button>
+    </div>
+    <filter-group :disabled="isOverrideOn" v-for="(group, idx) in groups" :filter-group="group"
+      :filter-by-options="filterByOptions" @remove="deleteGroup(idx)"></filter-group>
+
+    <div class="app-actions">
+      <label class="override-toggle" for="isOverrideOn">
+        <input id="isOverrideOn" type="checkbox" v-model="isOverrideOn" />
+        Query Override
+      </label>
+      <button @click="submitQuery" id="submit-button" class="btn-primary">Submit</button>
+    </div>
+  </div>
+</body>
+
+<script>
+  const { createApp, ref, computed, watch, useTemplateRef, nextTick } = Vue
+  const JOIN_OPTIONS = ['and', 'or', 'not']
+
+  const FilterGroup = {
+    template: `
+    <div class="filter-group">
+      <div class="group-header">
+        <select :disabled="disabled" v-if="filterGroup.items.length > 1" v-model="filterGroup.joinedBy" class="filter-select">
+          <option value="and">AND</option>
+          <option value="or">OR</option>
+          <option value="not">NOT</option>
+        </select>
+
+        <button class="btn" :disabled="disabled" @click.prevent="addRule">+ Rule</button>
+        <button class="btn" :disabled="disabled" @click.prevent="addGroup">+ Group</button>
+        <button class="btn btn-remove" :disabled="disabled" @click.prevent="$emit('remove')">Delete Group</button>
+      </div>
+
+      <div class="group-items">
+        <div v-for="(item, idx) in filterGroup.items" :key="item.id">
+
+          <div v-if="item.type === 'rule'" class="filter-rule">
+            <select class="filter-select" :disabled="disabled" :value="item.filterBy.value" @input="event => onFilterByChange(event, item)">
+              <option value="" disabled selected hidden>Filter By</option>
+              <option v-for="option in filterByOptions" :value="option.value">{{ option.value }}</option>
+            </select>
+
+            <select class="filter-select" :disabled="disabled" v-model="item.filterOperator">
+              <option value="eq">=</option>
+              <option value="ne">!=</option>
+              <option value="gt">&gt;</option>
+              <option value="ge">&gt;=</option>
+              <option value="lt">&lt;</option>
+              <option value="le">&lt;=</option>
+            </select>
+
+            <input class="filter-input" :disabled="disabled" v-model="item.filterValue" type="text" placeholder="Value..." />
+
+            <button class="btn btn-remove" style="padding: 6px 10px;" @click.prevent="removeItem(idx)">X</button>
+          </div>
+
+          <filter-group
+            v-else
+            :disabled="disabled"
+            :filter-group="item"
+            :filter-by-options="filterByOptions"
+            @remove="removeItem(idx)">
+          </filter-group>
+
+        </div>
+      </div>
+    </div>
+    `,
+    emits: ['remove'],
+    props: {
+      disabled: {
+        type: Boolean,
+        required: true
+      },
+      filterGroup: {
+        type: Object,
+        required: true
+      },
+      filterByOptions: {
+        type: Array,
+        required: true
+      }
+    },
+    methods: {
+      onFilterByChange(event, item) {
+        item.filterBy.value = event.target.value;
+        item.filterBy.type = this.filterByOptions.find(opt => opt.value === event.target.value)?.type ?? 'string'
+      },
+      addRule() {
+        this.filterGroup.items.push({
+          id: `i${this.filterGroup.items.length}`,
+          type: 'rule',
+          filterBy: {
+            type: 'string',
+            value: ''
+          },
+          filterOperator: 'eq',
+          filterValue: ''
+        })
+      },
+      addGroup() {
+        this.filterGroup.items.push({
+          id: `g${this.filterGroup.items.length}`,
+          type: 'group',
+          joinedBy: 'and',
+          items: [{
+            id: `i0`,
+            type: 'rule',
+            filterBy: {
+              type: 'string',
+              value: ''
+            },
+            filterOperator: 'eq',
+            filterValue: ''
+          }]
+        })
+      },
+      removeItem(idx) {
+        this.filterGroup.items.splice(idx, 1);
+      }
+    }
+  }
+
+  const app = createApp({
+    setup() {
+      function buildFilterQuery(groups, joinedBy) {
+        if (groups.length < 1) {
+          return ""
+        }
+
+        const groupFilters = groups.map(processFilters)
+
+        if (groupFilters.length === 0 || groupFilters.every(filterArr => filterArr.every(str => str === ""))) return "";
+        const filterStrings = groupFilters.flatMap((eachSet, idx) => {
+          if (eachSet.length === 0) return '';
+          if (eachSet.length > 1) {
+            return `(${eachSet.join(` ${groups[idx].joinedBy} `)})`
+          } else {
+            return eachSet[0]
+          }
+        })
+
+        return `?$filter=${filterStrings.join(` ${joinedBy} `)}`
+      }
+
+      function processFilters(group) {
+        if (group.items.length < 1) {
+          return [];
+        }
+
+        return group.items.map(item => {
+          if (item.type === 'group') {
+            const joinOp = item.joinedBy || 'or';
+            const nestedFilters = processFilters(item)
+            if (nestedFilters.length > 1) {
+              return `(${nestedFilters.join(` ${joinOp} `)})`
+            } else {
+              return nestedFilters[0]
+            }
+          } else {
+            if (item.filterBy.value === '') return ""
+            const val = item.filterBy.type === 'string' ? `'${item.filterValue}'` : item.filterValue
+            return `${item.filterBy.value} ${item.filterOperator} ${val}`
+          }
+        })
+      }
+      const filterByOptions = JSON.parse('<?= JSON.stringify(filterByOptions) ?>');
+      // const filterByOptions = [
+      //   { value: 'BusinessUnit', type: 'string' },
+      //   { value: "UnitCost", type: 'number' }
+      // ]
+
+      const groups = ref([{
+        id: 'group1',
+        type: "group",
+        items: [{ id: 'g0-i0', type: 'rule', filterBy: { type: 'string', value: '' }, filterOperator: 'eq', filterValue: '' }],
+        joinedBy: 'and'
+      }])
+      const joinedBy = ref('and')
+      const isOverrideOn = ref(false)
+      const queryOverride = ref("")
+      const queryOverrideRef = useTemplateRef('query-override-ref')
+
+      const computedQuery = computed(() => {
+        return buildFilterQuery(groups.value, joinedBy.value)
+      })
+      watch([computedQuery, isOverrideOn], async () => {
+        if (!isOverrideOn.value) {
+          queryOverride.value = computedQuery.value;
+        } else {
+          await nextTick()
+          queryOverrideRef.value?.focus()
+        }
+      }, { immediate: true });
+      const deleteGroup = (idx) => {
+        groups.value.splice(idx, 1)
+      }
+
+      function submitQuery() {
+        google.script.run.withSuccessHandler(() => {
+          google.script.host.close()
+        }).GetEquipment(queryOverride.value)
+      }
+
+
+      return {
+        filterByOptions,
+        groups,
+        computedQuery,
+        isOverrideOn,
+        queryOverride,
+        joinedBy,
+        deleteGroup,
+        submitQuery
+      }
+    }
+  })
+  app.component("filter-group", FilterGroup)
+
+  app.mount('#app')
+</script>
+
+</html>

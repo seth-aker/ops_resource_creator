@@ -187,10 +187,173 @@ interface IRawEquipment {
   "Monthly Rental"?: number | null;
   "Equipment Upc"?: string | null;
 }
+const equiptmentFilterByOptions: IFilterByOptions[] = [
+  { "value": "ObjectID", "type": "string" },
+  { "value": "EquipmentID", "type": "string" },
+  { "value": "IntegrationKey", "type": "string" },
+  { "value": "IsInactive", "type": "boolean" },
+  { "value": "BusinessUnitUniqueName", "type": "string" },
+  { "value": "Description", "type": "string" },
+  { "value": "EquipmentTypeID", "type": "string" },
+  { "value": "EquipmentTypeIntegrationKey", "type": "string" },
+  { "value": "MobilityType", "type": "string" },
+  { "value": "OwnershipType", "type": "string" },
+  { "value": "OrganizationID", "type": "string" },
+  { "value": "OrganizationIntegrationKey", "type": "string" },
+  { "value": "OperatorContactName", "type": "string" },
+  { "value": "OperatorEmployeeID", "type": "string" },
+  { "value": "OperatorEmployeeIntegrationKey", "type": "string" },
+  { "value": "SerialNumber", "type": "string" },
+  { "value": "Manufacturer", "type": "string" },
+  { "value": "Model", "type": "string" },
+  { "value": "Year", "type": "number" },
+  { "value": "Notes", "type": "string" },
+  { "value": "LocationName", "type": "string" },
+  { "value": "ExcludeFromFieldLogs", "type": "boolean" },
+  { "value": "Length", "type": "number" },
+  { "value": "LengthUnitOfMeasure", "type": "string" },
+  { "value": "Width", "type": "number" },
+  { "value": "WidthUnitOfMeasure", "type": "string" },
+  { "value": "Height", "type": "number" },
+  { "value": "HeightUnitOfMeasure", "type": "string" },
+  { "value": "MaxWeight", "type": "number" },
+  { "value": "MaxWeightUnitOfMeasure", "type": "string" },
+  { "value": "GroundPressure", "type": "number" },
+  { "value": "GroundPressureUnitOfMeasure", "type": "string" },
+  { "value": "CombinedWeight", "type": "number" },
+  { "value": "CombinedWeightUnitOfMeasure", "type": "string" },
+  { "value": "TareWeight", "type": "number" },
+  { "value": "TareWeightUnitOfMeasure", "type": "string" },
+  { "value": "LicensePlate", "type": "string" },
+  { "value": "Color", "type": "string" },
+  { "value": "Lojack", "type": "string" },
+  { "value": "HUTSticker", "type": "string" },
+  { "value": "EZPass", "type": "string" },
+  { "value": "ProductionDate", "type": "string" },
+  { "value": "Engine", "type": "string" },
+  { "value": "EngineArrangement", "type": "string" },
+  { "value": "EngineSerialNumber", "type": "string" },
+  { "value": "FuelType", "type": "string" },
+  { "value": "FuelTankCapacity", "type": "number" },
+  { "value": "InitialFuelReading", "type": "number" },
+  { "value": "InitialFuelCost", "type": "number" },
+  { "value": "FuelUnitOfMeasure", "type": "string" },
+  { "value": "InitialFuelDate", "type": "string" },
+  { "value": "HorsePower", "type": "string" },
+  { "value": "TransmissionModel", "type": "string" },
+  { "value": "TransmissionSerialNumber", "type": "string" },
+  { "value": "TireSize", "type": "string" },
+  { "value": "WheelType", "type": "string" },
+  { "value": "TrackType", "type": "string" },
+  { "value": "BrakeType", "type": "string" },
+  { "value": "CuttingEdge", "type": "string" },
+  { "value": "G_E_T", "type": "string" },
+  { "value": "HydraulicPumpType", "type": "string" },
+  { "value": "HydraulicFlowRate", "type": "string" },
+  { "value": "PurchasedFrom", "type": "string" },
+  { "value": "PurchasedDate", "type": "string" },
+  { "value": "PurchasedPrice", "type": "number" },
+  { "value": "TitleHolder", "type": "string" },
+  { "value": "SoldTo", "type": "string" },
+  { "value": "DispositionDate", "type": "string" },
+  { "value": "SalePrice", "type": "number" },
+  { "value": "InsuranceValue", "type": "number" },
+  { "value": "CCAClass", "type": "string" },
+  { "value": "MarketValue", "type": "number" },
+  { "value": "RentalNumber", "type": "string" },
+  { "value": "StartDate", "type": "string" },
+  { "value": "ReturnDate", "type": "string" },
+  { "value": "DailyRental", "type": "number" },
+  { "value": "WeeklyRental", "type": "number" },
+  { "value": "MonthlyRental", "type": "number" },
+  { "value": "EquipmentUpc", "type": "string" }
+]
+const SPREADSHEET_EQUIPMENT_KEYS: Array<keyof IRawEquipment> = [
+  "ObjectID",
+  "Equipment ID",
+  "Integration Key",
+  "Is Inactive",
+  "Business Unit Unique Name",
+  "Description",
+  "Equipment Type ID",
+  "Equipment Type Integration Key",
+  "Mobility Type",
+  "Ownership Type",
+  "Organization ID",
+  "Organization Integration Key",
+  "Operator Contact Name",
+  "Operator Employee ID",
+  "Operator Employee Integration Key",
+  "Serial Number",
+  "Manufacturer",
+  "Model",
+  "Year",
+  "Notes",
+  "Location Name",
+  "Exclude From Field Logs",
+  "Equipment Parts",
+  "Equipment Tags",
+  "Length",
+  "Length Unit Of Measure",
+  "Width",
+  "Width Unit Of Measure",
+  "Height",
+  "Height Unit Of Measure",
+  "Max Weight",
+  "Max Weight Unit Of Measure",
+  "Ground Pressure",
+  "Ground Pressure Unit Of Measure",
+  "Combined Weight",
+  "Combined Weight Unit Of Measure",
+  "Tare Weight",
+  "Tare Weight Unit Of Measure",
+  "License Plate",
+  "Color",
+  "Lojack",
+  "HUT Sticker",
+  "EZ Pass",
+  "Production Date",
+  "Engine",
+  "Engine Arrangement",
+  "Engine Serial Number",
+  "Fuel Type",
+  "Fuel Tank Capacity",
+  "Initial Fuel Reading",
+  "Initial Fuel Cost",
+  "Fuel Unit Of Measure",
+  "Initial Fuel Date",
+  "Horse Power",
+  "Transmission Model",
+  "Transmission Serial Number",
+  "Tire Size",
+  "Wheel Type",
+  "Track Type",
+  "Brake Type",
+  "Cutting Edge",
+  "G.E.T.",
+  "Hydraulic Pump Type",
+  "Hydraulic Flow Rate",
+  "Purchased From",
+  "Purchased Date",
+  "Purchased Price",
+  "Title Holder",
+  "Sold To",
+  "Disposition Date",
+  "Sale Price",
+  "Insurance Value",
+  "CCA Class",
+  "Market Value",
+  "Rental Number",
+  "Start Date",
+  "Return Date",
+  "Daily Rental",
+  "Weekly Rental",
+  "Monthly Rental",
+  "Equipment Upc"
+]
 
 interface GetOptions {
-  filters?: IFilterGroup[],
-  joinedBy?: JoinOption
+  filterQuery: string
 }
 
 interface UpdateEquipmentOptions {
@@ -199,13 +362,34 @@ interface UpdateEquipmentOptions {
   updateIntegrationKeys?: boolean
 }
 
+interface IBuildFilterTemplate extends GoogleAppsScript.HTML.HtmlTemplate {
+  filterByOptions: IFilterByOptions[]
+}
+
+function DisplayEquipmentFilterBuilder() {
+  const template = HtmlService.createTemplateFromFile('BuildFilter') as IBuildFilterTemplate
+  template.filterByOptions = equiptmentFilterByOptions;
+  const html = template.evaluate()
+    .setHeight(900)
+    .setWidth(1100)
+  const ui = SpreadsheetApp.getUi()
+  ui.showModalDialog(html, "Build Equipment Filter")
+}
+
 function GetEquipment(options: GetOptions) {
   setIsScriptFinished(false);
   clearScriptProgress();
   setCurrentScript("Getting Equipment");
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let equipmentSheet = spreadsheet.getSheetByName('Equipment')
+  if(!equipmentSheet) {
+    equipmentSheet = spreadsheet.insertSheet('Equipment');
+    const bold = SpreadsheetApp.newTextStyle().setBold(true).build()
+    equipmentSheet.appendRow(SPREADSHEET_EQUIPMENT_KEYS).getRange(1,1,1, SPREADSHEET_EQUIPMENT_KEYS.length).setTextStyle(bold)
+  }
   const currentSpreadSheetData = getSpreadSheetData<IRawEquipment>("Equipment")
+  const ui = SpreadsheetApp.getUi();
   if(currentSpreadSheetData.length > 0) {
-    const ui = SpreadsheetApp.getUi();
     const response = ui.prompt("The Equipment spreadsheet already has data. This will be overwritten. Do you want to contiune?",
       ui.ButtonSet.YES_NO
     )
@@ -218,23 +402,28 @@ function GetEquipment(options: GetOptions) {
   const baseUrl = getBaseURL()
   const token = getOpsToken();
   const headers = createHeaders(token)
-  const query = buildFilterQuery(options.filters ?? [], options.joinedBy);
 
-  const equiment = getDatabaseItems<IEquipmentDTO>(`${baseUrl}${query}`, {
+  const equiment = getDatabaseItems<IEquipmentDTO>(`${baseUrl}${options.filterQuery}`, {
     method: 'get',
     headers,
     muteHttpExceptions: true
   })
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let equipmentSheet = spreadsheet.getSheetByName('Equipment')
-  if(!equipmentSheet) {
-    
-  }
+  logEvent(`${equiment.length} pieces of equipment recieved.`)
+  
+  const rowValues = equiment.map(e => {
+    const values = createRawEquipment(e)
+    return SPREADSHEET_EQUIPMENT_KEYS.map(key => values[key] ?? "")
+  })
+  const startRow = equipmentSheet.getLastRow() + 1;
 
+  equipmentSheet.getRange(startRow, 1, rowValues.length, SPREADSHEET_EQUIPMENT_KEYS.length).setValues(rowValues);
 
+  logEvent("Script Complete!")
+  ui.alert("Script Complete!")
+  setIsScriptFinished(true)
 }
 
-function UpdateEquipment(options: UpdateEquipmentOptions) {
+function UpdateEquipment(_options: UpdateEquipmentOptions) {
   setIsScriptFinished(false);
   clearScriptProgress()
   setCurrentScript("UpdateEquipment")
@@ -400,5 +589,88 @@ function createEquipmentDTO(raw: IRawEquipment): IEquipmentDTO {
     WeeklyRental: raw["Weekly Rental"],
     MonthlyRental: raw["Monthly Rental"],
     EquipmentUpc: raw["Equipment Upc"]
+  };
+}
+function createRawEquipment(dto: IEquipmentDTO): IRawEquipment {
+  return {
+    "ObjectID": dto.ObjectID,
+    "Equipment ID": dto.EquipmentID,
+    "Integration Key": dto.IntegrationKey,
+    "Is Inactive": dto.IsInactive,
+    "Business Unit Unique Name": dto.BusinessUnitUniqueName,
+    "Description": dto.Description,
+    "Equipment Type ID": dto.EquipmentTypeID,
+    "Equipment Type Integration Key": dto.EquipmentTypeIntegrationKey,
+    "Mobility Type": dto.MobilityType,
+    "Ownership Type": dto.OwnershipType,
+    "Organization ID": dto.OrganizationID,
+    "Organization Integration Key": dto.OrganizationIntegrationKey,
+    "Operator Contact Name": dto.OperatorContactName,
+    "Operator Employee ID": dto.OperatorEmployeeID,
+    "Operator Employee Integration Key": dto.OperatorEmployeeIntegrationKey,
+    "Serial Number": dto.SerialNumber,
+    "Manufacturer": dto.Manufacturer,
+    "Model": dto.Model,
+    "Year": dto.Year,
+    "Notes": dto.Notes,
+    "Location Name": dto.LocationName,
+    "Exclude From Field Logs": dto.ExcludeFromFieldLogs,
+    "Length": dto.Length,
+    "Length Unit Of Measure": dto.LengthUnitOfMeasure,
+    "Width": dto.Width,
+    "Width Unit Of Measure": dto.WidthUnitOfMeasure,
+    "Height": dto.Height,
+    "Height Unit Of Measure": dto.HeightUnitOfMeasure,
+    "Max Weight": dto.MaxWeight,
+    "Max Weight Unit Of Measure": dto.MaxWeightUnitOfMeasure,
+    "Ground Pressure": dto.GroundPressure,
+    "Ground Pressure Unit Of Measure": dto.GroundPressureUnitOfMeasure,
+    "Combined Weight": dto.CombinedWeight,
+    "Combined Weight Unit Of Measure": dto.CombinedWeightUnitOfMeasure,
+    "Tare Weight": dto.TareWeight,
+    "Tare Weight Unit Of Measure": dto.TareWeightUnitOfMeasure,
+    "License Plate": dto.LicensePlate,
+    "Color": dto.Color,
+    "Lojack": dto.Lojack,
+    "HUT Sticker": dto.HUTSticker,
+    "EZ Pass": dto.EZPass,
+    "Production Date": dto.ProductionDate,
+    "Engine": dto.Engine,
+    "Engine Arrangement": dto.EngineArrangement,
+    "Engine Serial Number": dto.EngineSerialNumber,
+    "Fuel Type": dto.FuelType,
+    "Fuel Tank Capacity": dto.FuelTankCapacity,
+    "Initial Fuel Reading": dto.InitialFuelReading,
+    "Initial Fuel Cost": dto.InitialFuelCost,
+    "Fuel Unit Of Measure": dto.FuelUnitOfMeasure,
+    "Initial Fuel Date": dto.InitialFuelDate,
+    "Horse Power": dto.HorsePower,
+    "Transmission Model": dto.TransmissionModel,
+    "Transmission Serial Number": dto.TransmissionSerialNumber,
+    "Tire Size": dto.TireSize,
+    "Wheel Type": dto.WheelType,
+    "Track Type": dto.TrackType,
+    "Brake Type": dto.BrakeType,
+    "Cutting Edge": dto.CuttingEdge,
+    "G.E.T.": dto.G_E_T,
+    "Hydraulic Pump Type": dto.HydraulicPumpType,
+    "Hydraulic Flow Rate": dto.HydraulicFlowRate,
+    "Purchased From": dto.PurchasedFrom,
+    "Purchased Date": dto.PurchasedDate,
+    "Purchased Price": dto.PurchasedPrice,
+    "Title Holder": dto.TitleHolder,
+    "Sold To": dto.SoldTo,
+    "Disposition Date": dto.DispositionDate,
+    "Sale Price": dto.SalePrice,
+    "Insurance Value": dto.InsuranceValue,
+    "CCA Class": dto.CCAClass,
+    "Market Value": dto.MarketValue,
+    "Rental Number": dto.RentalNumber,
+    "Start Date": dto.StartDate,
+    "Return Date": dto.ReturnDate,
+    "Daily Rental": dto.DailyRental,
+    "Weekly Rental": dto.WeeklyRental,
+    "Monthly Rental": dto.MonthlyRental,
+    "Equipment Upc": dto.EquipmentUpc
   };
 }

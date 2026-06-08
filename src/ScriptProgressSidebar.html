@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <base target="_top">
   <meta charset="UTF-8">
@@ -9,19 +10,23 @@
     height: calc(100% - 16px);
     overflow: hidden;
   }
+
   body {
     display: flex;
     flex-direction: column;
     height: 100%;
   }
+
   h3 {
     margin-top: 0px;
     margin-bottom: 16px;
   }
+
   p {
     margin-top: 8px;
     margin-bottom: 8px;
   }
+
   #event-log {
     margin-top: 8px;
     min-height: 300px;
@@ -30,6 +35,7 @@
     overscroll-behavior: contain;
   }
 </style>
+
 <body>
   <div>
     <h3>Batch Progress:</h3>
@@ -50,15 +56,15 @@
       eventLog.removeChild(eventLog.lastChild)
     }
     // add them back
-    events.forEach((event) => {
+    events.forEach((event, idx) => {
       const newEl = document.createElement('p')
       newEl.textContent = event;
-      newEl.id = 'event'
+      newEl.id = `event-${idx}`
       eventLog.appendChild(newEl)
     })
   }
   function updateProgress(batchProgress) {
-    const batchComplete = Number.parseInt(batchProgress.completedBatches ?? "0") 
+    const batchComplete = Number.parseInt(batchProgress.completedBatches ?? "0")
     const totalBatches = Number.parseInt(batchProgress.totalBatches ?? "0")
     const totalItems = Number.parseInt(batchProgress.totalItems ?? "1")
     const completedItems = Number.parseInt(batchProgress.completedItems ?? "0")
@@ -74,7 +80,7 @@
       console.log(progress)
       updateEventLog(progress.scriptEvents)
       updateProgress(progress.batchProgress)
-      if(progress.scriptFinished) {
+      if (progress.scriptFinished) {
         return
       } else {
         getProgress()
@@ -84,4 +90,5 @@
 
   getProgress()
 </script>
+
 </html>

@@ -1,61 +1,58 @@
 interface IFilter {
-  filterBy: string,
+  type: 'rule'
+  filterBy: {
+    type: 'string' | 'number' | 'boolean'
+    value: string | number | boolean
+  },
   filterValue: string | number,
   filterOperator: 'eq' | 'ne' | 'gt' | 'ge' | 'lt' | 'le'
 }
 type JoinOption = 'and' | 'or' | 'not'
 
 interface IFilterGroup {
-  filters: IFilterGroup[] | IFilter[],
+  type: 'group'
+  items: (IFilterGroup | IFilter)[]
   joinedBy?: JoinOption
 }
-
-function buildFilterQuery(filters: IFilterGroup[], joinedBy: JoinOption = 'or') {
-  if(filters.length < 1) {
-    writeLogToSpreadsheet("Filter array is empty")
+interface IFilterByOptions {
+  value: string,
+  type: 'string' | 'boolean' | 'number'
+}
+function buildFilterQuery(groups: IFilterGroup[], joinedBy: JoinOption) {
+  if (groups.length < 1) {
     return ""
   }
-  const filterStrings = processFilters(filters)
-   
-  if (filterStrings.length === 0) return "";
+  const groupFilters = groups.map(processFilters)
+  if (groupFilters.length === 0) return "";
+  const filterStrings = groupFilters.flatMap((eachSet, idx) => {
+    if (eachSet.length === 0) return '';
+    if (eachSet.length > 1) {
+      return `(${eachSet.join(` ${groups[idx].joinedBy} `)})`
+    } else {
+      return eachSet[0]
+    }
+  })
 
   return `?$filter=${filterStrings.join(` ${joinedBy} `)}`
 }
 
-function isFilterArray(array: IFilterGroup[] | IFilter[]): array is IFilter[] {
-  if(array.length === 0) return false;
-  return 'filterBy' in array[0];
-}
-
-function processFilters(filters: IFilterGroup[]): string[] {
-  if(filters.length < 1) {
-    writeLogToSpreadsheet("Filter array is empty")
+function processFilters(group: IFilterGroup): string[] {
+  if (group.items.length < 1) {
     return [];
   }
-  
-  return filters.flatMap(item => {
-    if (item.filters.length === 0) return []; 
-    const joinOp = item.joinedBy || 'or'; 
 
-    if(isFilterArray(item.filters)) {
-      const filterStrs = item.filters.map((filter) => {
-        const val = typeof filter.filterValue === 'string' 
-          ? `'${filter.filterValue}'` 
-          : filter.filterValue;
-          
-        return `${filter.filterBy} ${filter.filterOperator} ${val}`;
-      });
-      if(filterStrs.length > 1) {
-        return `(${filterStrs.join(` ${joinOp} `)})`
+  return group.items.map(item => {
+    if (item.type === 'group') {
+      const joinOp = item.joinedBy || 'or';
+      const nestedFilters = processFilters(item)
+      if (nestedFilters.length > 1) {
+        return `(${nestedFilters.join(` ${joinOp} `)})`
       } else {
-        return filterStrs[0];
+        return nestedFilters[0]
       }
     } else {
-      const nestedStrs = processFilters(item.filters);
-      if (nestedStrs.length > 1) {
-        return `(${nestedStrs.join(` ${joinOp} `)})`;
-      }
-      return nestedStrs; 
+      const val = item.filterBy.type === 'string' ? `'${item.filterValue}'` : item.filterValue
+      return `${item.filterBy.value} ${item.filterOperator} ${val}`
     }
   })
 }

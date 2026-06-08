@@ -19,6 +19,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Run Scripts')
       .addItem("Create Users", "CreateUsers")
+      .addItem("Get Equipment", "DisplayEquipmentFilterBuilder")
       .addToUi()
 
 }
