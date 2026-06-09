@@ -108,7 +108,7 @@ interface IRawEquipment {
   "ObjectID"?: string;
   "Equipment ID": string;
   "Integration Key"?: string | null;
-  "Is Inactive"?: boolean;
+  "Is Inactive?"?: boolean;
   "Business Unit Unique Name": string;
   "Description": string;
   "Equipment Type ID"?: string | null;
@@ -272,7 +272,7 @@ const SPREADSHEET_EQUIPMENT_KEYS: Array<keyof IRawEquipment> = [
   "ObjectID",
   "Equipment ID",
   "Integration Key",
-  "Is Inactive",
+  "Is Inactive?",
   "Business Unit Unique Name",
   "Description",
   "Equipment Type ID",
@@ -380,6 +380,7 @@ function GetEquipment(options: GetOptions) {
   setIsScriptFinished(false);
   clearScriptProgress();
   setCurrentScript("Getting Equipment");
+  openProgressSidebar("Getting Equipment")
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let equipmentSheet = spreadsheet.getSheetByName('Equipment')
   if(!equipmentSheet) {
@@ -390,10 +391,10 @@ function GetEquipment(options: GetOptions) {
   const currentSpreadSheetData = getSpreadSheetData<IRawEquipment>("Equipment")
   const ui = SpreadsheetApp.getUi();
   if(currentSpreadSheetData.length > 0) {
-    const response = ui.prompt("The Equipment spreadsheet already has data. This will be overwritten. Do you want to contiune?",
+    const response = ui.alert("The Equipment spreadsheet already has data. This will be overwritten. Do you want to contiune?",
       ui.ButtonSet.YES_NO
     )
-    if(response.getSelectedButton() === ui.Button.NO) {
+    if(response === ui.Button.NO) {
       setIsScriptFinished(true);
       logEvent("Get Equipment Script Canceled")
       return;
@@ -403,7 +404,7 @@ function GetEquipment(options: GetOptions) {
   const token = getOpsToken();
   const headers = createHeaders(token)
 
-  const equiment = getDatabaseItems<IEquipmentDTO>(`${baseUrl}${options.filterQuery}`, {
+  const equiment = getDatabaseItems<IEquipmentDTO>(`${baseUrl}/Equipment${options.filterQuery}`, {
     method: 'get',
     headers,
     muteHttpExceptions: true
@@ -412,7 +413,14 @@ function GetEquipment(options: GetOptions) {
   
   const rowValues = equiment.map(e => {
     const values = createRawEquipment(e)
-    return SPREADSHEET_EQUIPMENT_KEYS.map(key => values[key] ?? "")
+    const headers = equipmentSheet.getDataRange().getValues()[0] as typeof SPREADSHEET_EQUIPMENT_KEYS;
+    SPREADSHEET_EQUIPMENT_KEYS.forEach((key) => {
+      if(!headers.includes(key)) {
+        headers.push(key);
+        equipmentSheet.getRange(1, headers.length,1,1).setValue(key)
+      }
+    })
+    return headers.map(key => values[key] ?? "")
   })
   const startRow = equipmentSheet.getLastRow() + 1;
 

@@ -477,10 +477,11 @@
         groups.value.splice(idx, 1)
       }
 
-      function submitQuery() {
-        google.script.run.withSuccessHandler(() => {
+      async function submitQuery() {
+        await google.script.run.GetEquipment({filterQuery: queryOverride.value});
+        setTimeout(() => {
           google.script.host.close()
-        }).GetEquipment(queryOverride.value)
+        }, 500)
       }
 
 
