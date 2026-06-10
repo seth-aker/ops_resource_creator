@@ -12,7 +12,8 @@ interface IRawUserData {
   "Maintain Manager License"?: TRawLicenseType,
   "Maintain Mechanic License"?: TRawLicenseType,
   "Employee Integration Key"?: string,
-  "Integration Mapping"?: string
+  "Integration Mapping"?: string,
+  "Is Inactive?": boolean
 }
 
 interface IUserDTO {
@@ -37,12 +38,87 @@ type TRawFieldEmpLicenseType = "None" | "Full Access"
 type TLicenseTypeDTO = "None" | "ReadOnly" | "Full" 
 type TFieldEmployeeLicenseDTO = "None" | "Full"
 
-const LICENSE_MAP: Record<TRawLicenseType, TLicenseTypeDTO> = {
-  "None": "None",
-  "Read Only": "ReadOnly",
-  "Full Access": "Full"
+interface GetUserOptions {
+  filterQuery: string
 }
 
+const USER_SPREADSHEET_KEYS: Array<keyof IRawUserData> = [
+  "Business Unit",
+  "First Name",
+  "Last Name",
+  "Employee ID",
+  "Title",
+  "TID / Mobile Email Address",
+  "Notes",
+  "Track License",
+  "Field Employee License",
+  "Schedule License",
+  "Maintain Manager License",
+  "Maintain Mechanic License",
+  "Employee Integration Key",
+  "Integration Mapping",
+  "Is Inactive?"
+]
+const LICENSE_MAP = new Map<TRawLicenseType, TLicenseTypeDTO>()
+  .set("None", "None")
+  .set("Read Only", "ReadOnly")
+  .set("Full Access", "Full")
+function GetUsers(options: GetUserOptions) {
+  setIsScriptFinished(false);
+  clearScriptProgress()
+  setCurrentScript("GetUsers")
+  openProgressSidebar("Getting Users");
+
+  logEvent("Starting get users script")
+  const token = getOpsToken();
+  const baseUrl = getBaseURL();
+
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let usersSheet = spreadsheet.getSheetByName('Users')
+  if(!usersSheet) {
+    usersSheet = spreadsheet.insertSheet('Users');
+    const bold = SpreadsheetApp.newTextStyle().setBold(true).build()
+    usersSheet.appendRow(USER_SPREADSHEET_KEYS).getRange(1,1,1, USER_SPREADSHEET_KEYS.length).setTextStyle(bold)
+  }
+  const currentSpreadSheetData = getSpreadSheetData<IRawUserData>("Users")
+  const ui = SpreadsheetApp.getUi();
+  if(currentSpreadSheetData.length > 0) {
+    const response = ui.alert("The User spreadsheet already has data. This will be overwritten. Do you want to contiune?",
+      ui.ButtonSet.YES_NO
+    )
+    if(response === ui.Button.NO) {
+      logEvent("Get Users Script Canceled")
+      setIsScriptFinished(true);
+      return;
+    }
+  }
+  const headers = createHeaders(token)
+
+  const users = getDatabaseItems<IUserDTO>(`${baseUrl}/Users${options.filterQuery}`, {
+    method: 'get',
+    headers,
+    muteHttpExceptions: true
+  })
+
+  const rowValues = users.map(e => {
+    const values = createRawUsers(e)
+    const headerValues = usersSheet.getDataRange().getValues()[0] as typeof USER_SPREADSHEET_KEYS
+    USER_SPREADSHEET_KEYS.forEach((key) => {
+      if(!headerValues.includes(key)) {
+        headerValues.push(key)
+        usersSheet.getRange(1, headerValues.length, 1,1).setValue(key)
+      }
+    })
+    return headerValues.map(key => values[key] ?? "")
+  })
+  const startRow = usersSheet.getLastRow() + 1;
+
+  usersSheet.getRange(startRow, 1, rowValues.length, USER_SPREADSHEET_KEYS.length).setValues(rowValues)
+  
+  logEvent("Script Complete!")
+  ui.alert("Script Complete!")
+  setIsScriptFinished(true)
+}
 function CreateUsers() {
   try { 
     setIsScriptFinished(false);
@@ -52,11 +128,12 @@ function CreateUsers() {
 
     logEvent("Starting Create Users Script")
     const token = getOpsToken()
-    const baseUrl = PropertiesService.getUserProperties().getProperty('opsBaseUrl');
+    const baseUrl = getBaseURL()
     
     const userData = getSpreadSheetData<IRawUserData>('Users')
     if(!userData || userData.length === 0) {
-     
+      SpreadsheetApp.getUi().alert("No data found to send!")
+      setIsScriptFinished(false);
     }
 
     const url = baseUrl + "/user"
@@ -111,12 +188,31 @@ function createUserDTO(row: IRawUserData) {
     Title: row.Title,
     MobileEmailAddress: row["TID / Mobile Email Address"],
     Notes: row.Notes,
-    TrackLicense: row["Track License"] ? LICENSE_MAP[row["Track License"]] : undefined,
-    FieldEmployeeLicense: row["Field Employee License"] ? LICENSE_MAP[row["Field Employee License"]] : undefined,
-    ScheduleLicense: row["Schedule License"] ? LICENSE_MAP[row["Schedule License"]] : undefined,
-    MaintainMechanicLicense: row["Maintain Mechanic License"] ? LICENSE_MAP[row["Maintain Mechanic License"]] : undefined,
-    MaintainManagerLicense: row["Maintain Manager License"] ? LICENSE_MAP[row["Maintain Manager License"]] : undefined,
+    TrackLicense: row["Track License"] ? LICENSE_MAP.get(row["Track License"]) : undefined,
+    FieldEmployeeLicense: row["Field Employee License"] ? LICENSE_MAP.get(row["Field Employee License"]) : undefined,
+    ScheduleLicense: row["Schedule License"] ? LICENSE_MAP.get(row["Schedule License"]) : undefined,
+    MaintainMechanicLicense: row["Maintain Mechanic License"] ? LICENSE_MAP.get(row["Maintain Mechanic License"]) : undefined,
+    MaintainManagerLicense: row["Maintain Manager License"] ? LICENSE_MAP.get(row["Maintain Manager License"]) : undefined,
     EmployeeIntegrationKey: row["Employee Integration Key"],
     IntegrationMapping: row["Integration Mapping"]
   } as IUserDTO
+}
+function createRawUsers(u: IUserDTO): IRawUserData {
+  const licenseOptions = Array.from(LICENSE_MAP.entries())
+  return {
+    "Business Unit": u.BusinessUnitUniqueName,
+    "First Name": u.FirstName,
+    "Last Name": u.LastName,
+    "Is Inactive?": u.IsInactive,
+    "Employee ID": u.EmployeeID,
+    "Title": u.Title,
+    "TID / Mobile Email Address": u.MobileEmailAddress,
+    "Notes": u.Notes,
+    "Track License": licenseOptions.find(([_key, val]) => u.TrackLicense === val)?.[0],
+    "Schedule License": licenseOptions.find(([_key, val]) => u.ScheduleLicense === val)?.[0],
+    "Maintain Manager License": licenseOptions.find(([_key, val]) => u.MaintainManagerLicense === val)?.[0],
+    "Maintain Mechanic License": licenseOptions.find(([_key, val]) => u.MaintainMechanicLicense === val)?.[0],
+    "Employee Integration Key": u.EmployeeIntegrationKey,
+    "Integration Mapping": u.IntegrationMapping
+  }
 }

@@ -382,8 +382,8 @@ function GetEquipment(options: GetOptions) {
       ui.ButtonSet.YES_NO
     )
     if(response === ui.Button.NO) {
-      setIsScriptFinished(true);
       logEvent("Get Equipment Script Canceled")
+      setIsScriptFinished(true);
       return;
     }
   }
@@ -431,8 +431,8 @@ function UpdateEquipment(_options: UpdateEquipmentOptions) {
 
   const equipmentData = getSpreadSheetData<IRawEquipment>('Equipment')
   if(!equipmentData || equipmentData.length === 0) {
-      SpreadsheetApp.getUi().alert("No data found to send!")
-    clearScriptProgress();
+    SpreadsheetApp.getUi().alert("No data found to send!")
+    setIsScriptFinished(false);
     return;
   }
   const headers = createHeaders(token);
