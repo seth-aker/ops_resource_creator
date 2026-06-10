@@ -14,6 +14,7 @@ interface IRawUserData {
   "Employee Integration Key"?: string,
   "Integration Mapping"?: string,
   "Is Inactive?": boolean,
+  "Windows Account Name"?: string,
   "ObjectID"?: string
 }
 
@@ -25,7 +26,8 @@ interface IUserDTO {
   IsInactive: boolean,
   EmployeeID?: string,
   Title?: string,
-  MobileEmailAddress?: string
+  MobileEmailAddress?: string,
+  WindowsAccountName?: string,
   Notes: string,
   TrackLicense?: TLicenseTypeDTO,
   FieldEmployeeLicense?: TFieldEmployeeLicenseDTO,
@@ -43,7 +45,23 @@ type TFieldEmployeeLicenseDTO = "None" | "Full"
 interface GetUserOptions {
   filterQuery: string
 }
-
+const USER_FILTER_BY_OPTIONS: IFilterByOptions[] = [
+  {"value": "ObjectID", "type": "string"},
+  {"value": "BusinessUnitUniqueName", "type": "string"},
+  {"value": "FirstName", "type": "string"},
+  {"value": "LastName", "type": "string"},
+  {"value": "IsInactive", "type": "boolean"},
+  {"value": "EmployeeID", "type": "string"},
+  {"value": "Title", "type": "string"},
+  {"value": "TrackLicense", "type": "string"},
+  {"value": "FieldEmployeeLicense", "type": "string"},
+  {"value": "ScheduleLicense", "type": "string"},
+  {"value": "MaintainMechanicLicense", "type": "string"},
+  {"value": "MaintainManagerLicense", "type": "string"},
+  {"value": "EmployeeIntegrationKey", "type": "string"},
+  {"value": "IntegrationMapping", "type": "string"},
+  {"value": "WindowsAccountName", "type": "string"}
+]
 const USER_SPREADSHEET_KEYS: Array<keyof IRawUserData> = [
   "Business Unit",
   "First Name",
@@ -60,12 +78,24 @@ const USER_SPREADSHEET_KEYS: Array<keyof IRawUserData> = [
   "Employee Integration Key",
   "Integration Mapping",
   "Is Inactive?",
-  "ObjectID"
+  "Windows Account Name",
+  "ObjectID",
 ]
 const LICENSE_MAP = new Map<TRawLicenseType, TLicenseTypeDTO>()
   .set("None", "None")
   .set("Read Only", "ReadOnly")
   .set("Full Access", "Full")
+
+function DisplayUserFilterBuilder() {
+  const template = HtmlService.createTemplateFromFile('BuildFilter') as IBuildFilterTemplate
+  template.filterByOptions = USER_FILTER_BY_OPTIONS;
+  template.serverFunctionName = "GetUsers"
+  const html = template.evaluate()
+    .setHeight(900)
+    .setWidth(1100)
+  const ui = SpreadsheetApp.getUi()
+  ui.showModalDialog(html, "Users Filter")
+}
 function GetUsers(options: GetUserOptions) {
   setIsScriptFinished(false);
   clearScriptProgress()
@@ -93,30 +123,33 @@ function GetUsers(options: GetUserOptions) {
       logEvent("Get Users Script Canceled")
       setIsScriptFinished(true);
       return;
+    } else {
+      usersSheet.getRange(2, 1, usersSheet.getLastRow(), usersSheet.getLastColumn()).clearContent()
     }
   }
   const headers = createHeaders(token)
 
-  const users = getDatabaseItems<IUserDTO>(`${baseUrl}/Users${options.filterQuery}`, {
+  const users = getDatabaseItems<IUserDTO>(`${baseUrl}/User${options.filterQuery}`, {
     method: 'get',
     headers,
     muteHttpExceptions: true
   })
+  logEvent(`${users.length} users recieved.`)
+  const headerValues = usersSheet.getDataRange().getValues()[0] as typeof USER_SPREADSHEET_KEYS
+  USER_SPREADSHEET_KEYS.forEach((key) => {
+    if(!headerValues.includes(key)) {
+      headerValues.push(key)
+      usersSheet.getRange(1, headerValues.length, 1,1).setValue(key)
+    }
+  })
 
   const rowValues = users.map(e => {
     const values = createRawUsers(e)
-    const headerValues = usersSheet.getDataRange().getValues()[0] as typeof USER_SPREADSHEET_KEYS
-    USER_SPREADSHEET_KEYS.forEach((key) => {
-      if(!headerValues.includes(key)) {
-        headerValues.push(key)
-        usersSheet.getRange(1, headerValues.length, 1,1).setValue(key)
-      }
-    })
     return headerValues.map(key => values[key] ?? "")
   })
-  const startRow = usersSheet.getLastRow() + 1;
+  const startRow = 2;
 
-  usersSheet.getRange(startRow, 1, rowValues.length, USER_SPREADSHEET_KEYS.length).setValues(rowValues)
+  usersSheet.getRange(startRow, 1, rowValues.length, headerValues.length).setValues(rowValues)
   
   logEvent("Script Complete!")
   ui.alert("Script Complete!")
@@ -154,7 +187,7 @@ function CreateUsers() {
       }
       return options;
     })
-    logEvent("Uploading users...")
+    logEvent(`Uploading ${batchOptions.length} users...`)
     const results = batchFetch(batchOptions);
     
     const failedRows: number[] = []
@@ -227,7 +260,7 @@ function UpdateUsers() {
   } else {
     payloads = userDTOs
   }
-  const batchOptions = userDTOs.map(row => {
+  const batchOptions = payloads.map(row => {
     const options = {
       url,
       method: 'put' as const,

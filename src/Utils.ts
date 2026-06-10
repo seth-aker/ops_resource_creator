@@ -127,10 +127,11 @@ function fetchWithRetries(url: string, options: GoogleAppsScript.URL_Fetch.URLFe
 
 function getDatabaseItems<T>(url: string, options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions) {
   const items: T[] = []
-
+  writeLogToSpreadsheet(`Calling URL: ${url}`)
   const res = fetchWithRetries(url, options)
   if(res.getResponseCode() > 299) {
-    writeLogToSpreadsheet(`An error occured fetching items from the database: ${res.getContentText()}`)
+    logEvent(`An error occured fetching items from the database: ${res.getContentText()}`)
+    setIsScriptFinished(true)
     throw new Error(`An error occured fetching items from the database: ${res.getContentText()}`)
   }
 

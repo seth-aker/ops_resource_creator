@@ -8,21 +8,6 @@ interface ISetOpsTemplate extends GoogleAppsScript.HTML.HtmlTemplate {
   clientID: string,
   hasClientSecret: boolean
 }
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('OPS Properties')
-      .addItem('Set OPS Properties', 'setOpsProperties')
-      .addItem('View Current OPS Properties', 'viewOpsProperties')
-      .addItem('Clear OPS Properties', 'clearOpsProperties')
-      .addToUi()
-
-  SpreadsheetApp.getUi()
-    .createMenu('Run Scripts')
-      .addItem("Create Users", "CreateUsers")
-      .addItem("Get Equipment", "DisplayEquipmentFilterBuilder")
-      .addToUi()
-
-}
 function setOpsProperties() {
   const template = HtmlService.createTemplateFromFile('SetOpsProperties') as ISetOpsTemplate
   const userProperties = PropertiesService.getUserProperties();

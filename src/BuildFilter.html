@@ -446,6 +446,7 @@
         })
       }
       const filterByOptions = JSON.parse('<?= JSON.stringify(filterByOptions) ?>');
+      const serverFunctionName = '<?= serverFunctionName ?>'
       // const filterByOptions = [
       //   { value: 'BusinessUnit', type: 'string' },
       //   { value: "UnitCost", type: 'number' }
@@ -478,7 +479,7 @@
       }
 
       async function submitQuery() {
-        await google.script.run.GetEquipment({filterQuery: queryOverride.value});
+        await google.script.run[serverFunctionName]({filterQuery: queryOverride.value});
         setTimeout(() => {
           google.script.host.close()
         }, 500)

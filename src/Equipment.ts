@@ -176,7 +176,7 @@ interface IRawEquipment {
   "Monthly Rental"?: number | null;
   "Equipment Upc"?: string | null;
 }
-const equiptmentFilterByOptions: IFilterByOptions[] = [
+const EQUIPMENT_FILTER_BY_OPTIONS: IFilterByOptions[] = [
   { "value": "ObjectID", "type": "string" },
   { "value": "EquipmentID", "type": "string" },
   { "value": "IntegrationKey", "type": "string" },
@@ -350,17 +350,19 @@ interface UpdateEquipmentOptions {
 }
 
 interface IBuildFilterTemplate extends GoogleAppsScript.HTML.HtmlTemplate {
-  filterByOptions: IFilterByOptions[]
+  filterByOptions: IFilterByOptions[],
+  serverFunctionName: string
 }
 
 function DisplayEquipmentFilterBuilder() {
   const template = HtmlService.createTemplateFromFile('BuildFilter') as IBuildFilterTemplate
-  template.filterByOptions = equiptmentFilterByOptions;
+  template.filterByOptions = EQUIPMENT_FILTER_BY_OPTIONS;
+  template.serverFunctionName = "GetEquipment"
   const html = template.evaluate()
     .setHeight(900)
     .setWidth(1100)
   const ui = SpreadsheetApp.getUi()
-  ui.showModalDialog(html, "Build Equipment Filter")
+  ui.showModalDialog(html, "Equipment Filter")
 }
 
 function GetEquipment(options: GetOptions) {
@@ -385,33 +387,35 @@ function GetEquipment(options: GetOptions) {
       logEvent("Get Equipment Script Canceled")
       setIsScriptFinished(true);
       return;
+    } else {
+      equipmentSheet.getRange(2, 1, equipmentSheet.getLastRow(), equipmentSheet.getLastColumn()).clearContent()
     }
   }
   const baseUrl = getBaseURL()
   const token = getOpsToken();
   const headers = createHeaders(token)
-
+  logEvent("Getting equiment")
   const equiment = getDatabaseItems<IEquipmentDTO>(`${baseUrl}/Equipment${options.filterQuery}`, {
     method: 'get',
     headers,
     muteHttpExceptions: true
   })
   logEvent(`${equiment.length} pieces of equipment recieved.`)
+  const spreadsheetHeaders = equipmentSheet.getDataRange().getValues()[0] as typeof SPREADSHEET_EQUIPMENT_KEYS;
+  SPREADSHEET_EQUIPMENT_KEYS.forEach((key) => {
+    if(!spreadsheetHeaders.includes(key)) {
+      spreadsheetHeaders.push(key);
+      equipmentSheet.getRange(1, spreadsheetHeaders.length,1,1).setValue(key)
+    }
+  })
   
   const rowValues = equiment.map(e => {
     const values = createRawEquipment(e)
-    const headers = equipmentSheet.getDataRange().getValues()[0] as typeof SPREADSHEET_EQUIPMENT_KEYS;
-    SPREADSHEET_EQUIPMENT_KEYS.forEach((key) => {
-      if(!headers.includes(key)) {
-        headers.push(key);
-        equipmentSheet.getRange(1, headers.length,1,1).setValue(key)
-      }
-    })
-    return headers.map(key => values[key] ?? "")
+    return spreadsheetHeaders.map(key => values[key] ?? "")
   })
-  const startRow = equipmentSheet.getLastRow() + 1;
+  const startRow = 2;
 
-  equipmentSheet.getRange(startRow, 1, rowValues.length, SPREADSHEET_EQUIPMENT_KEYS.length).setValues(rowValues);
+  equipmentSheet.getRange(startRow, 1, rowValues.length, spreadsheetHeaders.length).setValues(rowValues);
 
   logEvent("Script Complete!")
   ui.alert("Script Complete!")
@@ -502,7 +506,63 @@ function UpdateEquipment(_options: UpdateEquipmentOptions) {
   SpreadsheetApp.getUi().alert("Script Complete!")
   setIsScriptFinished(true);
 }
+function CreateEquipment() {
+  try {
+    setIsScriptFinished(false);
+    clearScriptProgress()
+    setCurrentScript("CreateEquipment")
+    openProgressSidebar("Creating Equipment");
 
+    logEvent("Starting Create Users Script")
+    const token = getOpsToken()
+    const baseUrl = getBaseURL()
+    
+    const userData = getSpreadSheetData<IRawUserData>('Equipment')
+    if(!userData || userData.length === 0) {
+      SpreadsheetApp.getUi().alert("No data found to send!")
+      setIsScriptFinished(false);
+    }
+    const url = baseUrl + "/user"
+    const headers = createHeaders(token);
+    const userDTOs = userData.map((row) => {
+        return createUserDTO(row);
+      })
+    const batchOptions = userDTOs.map(row => {
+      const options = {
+        url,
+        method: 'post' as const,
+        headers,
+        payload: JSON.stringify(row),
+        muteHttpExceptions: true
+      }
+      return options;
+    })
+    logEvent(`Uploading ${batchOptions.length} Equipment...`)
+    const results = batchFetch(batchOptions);
+    
+    const failedRows: number[] = []
+    results.forEach((result, idx) => {
+      const code = result.getResponseCode();
+      if(code >= 400) {
+        failedRows.push(idx);
+        writeLogToSpreadsheet(`${code} Error: ${result.getContentText()}`)
+      }
+    })
+    
+    if(failedRows.length > 0) {
+      const errorMessages = failedRows.map(idx => `${results[idx].getResponseCode()} Error: ${results[idx].getContentText()}`)
+      const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
+      logEvent([`Some rows failed!:`, ...failedResults])
+      highlightRows(failedRows.map(each => each + 2), 'red');
+    }
+    logEvent("Script Complete!")
+    SpreadsheetApp.getUi().alert("Script Complete!")
+    setIsScriptFinished(true);
+  } catch (err) {
+    setIsScriptFinished(true)
+    throw err
+  }
+}
 function createEquipmentDTO(raw: IRawEquipment): IEquipmentDTO {
   return {
     ObjectID: raw.ObjectID,

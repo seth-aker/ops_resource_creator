@@ -1,0 +1,25 @@
+function onOpen() {
+  const ui = SpreadsheetApp.getUi()
+  ui.createMenu('OPS Properties')
+    .addItem('Set OPS Properties', 'setOpsProperties')
+    .addItem('View Current OPS Properties', 'viewOpsProperties')
+    .addItem('Clear OPS Properties', 'clearOpsProperties')
+    .addToUi()
+  const userMenu = ui.createMenu("Users")
+    .addItem("Get Users", "DisplayUserFilterBuilder")
+    .addItem("Create Users", "CreateUsers")
+    .addItem("Update Users", "UpdateUsers")
+  const employeeMenu = ui.createMenu("Employees")
+    .addItem("Get Employees", "DisplayEmployeeFilterBuilder")
+  const equipmentMenu = ui.createMenu("Equipment")
+    .addItem("Get Equipment", "DisplayEquipmentFilterBuilder")
+    .addItem("Create Equipment", "CreateEquipment")
+    .addItem("Update Equipment", "UpdateEquipment")
+    
+  ui.createMenu('Run Scripts')
+    .addSubMenu(userMenu)
+    .addSubMenu(employeeMenu)
+    .addSubMenu(equipmentMenu)
+    .addToUi()
+
+}
