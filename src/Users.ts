@@ -13,10 +13,12 @@ interface IRawUserData {
   "Maintain Mechanic License"?: TRawLicenseType,
   "Employee Integration Key"?: string,
   "Integration Mapping"?: string,
-  "Is Inactive?": boolean
+  "Is Inactive?": boolean,
+  "ObjectID"?: string
 }
 
 interface IUserDTO {
+  ObjectID?: string,
   BusinessUnitUniqueName: string,
   FirstName?: string,
   LastName?: string,
@@ -57,7 +59,8 @@ const USER_SPREADSHEET_KEYS: Array<keyof IRawUserData> = [
   "Maintain Mechanic License",
   "Employee Integration Key",
   "Integration Mapping",
-  "Is Inactive?"
+  "Is Inactive?",
+  "ObjectID"
 ]
 const LICENSE_MAP = new Map<TRawLicenseType, TLicenseTypeDTO>()
   .set("None", "None")
@@ -177,6 +180,83 @@ function CreateUsers() {
     throw err
   }
 }
+function UpdateUsers() {
+  setIsScriptFinished(false);
+  clearScriptProgress()
+  setCurrentScript("UpdateUsers")
+  openProgressSidebar("Updating Users");
+
+  logEvent("Starting Update Users Script")
+
+  const token = getOpsToken()
+  const baseUrl = getBaseURL()
+  
+  const userData = getSpreadSheetData<IRawUserData>('Users')
+  if(!userData || userData.length === 0) {
+    SpreadsheetApp.getUi().alert("No data found to send!")
+    setIsScriptFinished(false);
+  }
+
+  const url = baseUrl + "/user"
+  const headers = createHeaders(token);
+  const userDTOs = userData.map(createUserDTO)
+  let payloads: IUserDTO[] = []
+  if(!userDTOs.every(entry => entry.ObjectID && entry.ObjectID.length > 0)) {
+    const getOptions = {
+      headers,
+      method: 'get' as const,
+      muteHttpExceptions: true
+    }
+    const existingUsers = getDatabaseItems<IUserDTO>(url, getOptions)
+    payloads = userDTOs.map((each, idx) => {
+      const mobileEmailAddress = each.MobileEmailAddress
+      const existing = existingUsers.find(u => {
+        return mobileEmailAddress === u.MobileEmailAddress
+      })
+      if(!existing) {
+        const errorMessage = `Error: Could not find existing user whose tid matches: ${mobileEmailAddress}`
+        logEvent(errorMessage)
+        highlightRows([idx + 2], 'red')
+        throw new Error(errorMessage)
+      }
+      return {
+        ...existing,
+        ...each
+      }
+    })
+  } else {
+    payloads = userDTOs
+  }
+  const batchOptions = userDTOs.map(row => {
+    const options = {
+      url,
+      method: 'put' as const,
+      headers,
+      payload: JSON.stringify(row),
+      muteHttpExceptions: true
+    }
+    return options;
+  })
+  logEvent("Updating users...")
+  const results = batchFetch(batchOptions);
+  const failed = [] as number[]
+  
+  results.forEach((res, idx) => {
+    const code = res.getResponseCode()
+    if(code > 299) {
+      writeLogToSpreadsheet(`Error Code: ${code}, Message: ${res.getContentText()}`)
+      failed.push(idx)
+    }
+  })
+  if(failed.length > 0) {
+    const failureMessages = failed.map(idx => `Row ${idx + 2}: ${results[idx].getContentText()}`)
+    logEvent(["Some rows failed", ...failureMessages])
+    highlightRows(failed.map(f => f + 2), 'red')
+  }
+  logEvent("Script Complete")
+  SpreadsheetApp.getUi().alert("Script Complete!")
+  setIsScriptFinished(true)
+}
 
 function createUserDTO(row: IRawUserData) {
   return {
@@ -213,6 +293,7 @@ function createRawUsers(u: IUserDTO): IRawUserData {
     "Maintain Manager License": licenseOptions.find(([_key, val]) => u.MaintainManagerLicense === val)?.[0],
     "Maintain Mechanic License": licenseOptions.find(([_key, val]) => u.MaintainMechanicLicense === val)?.[0],
     "Employee Integration Key": u.EmployeeIntegrationKey,
-    "Integration Mapping": u.IntegrationMapping
+    "Integration Mapping": u.IntegrationMapping,
+    "ObjectID": u.ObjectID
   }
 }
