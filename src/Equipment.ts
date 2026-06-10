@@ -93,23 +93,14 @@ interface IEquipmentDTO {
   EquipmentUpc?: string | null;
 }
 
-interface IRawEquipmentPart {
-  "Part ID": string;
-  "Integration Key"?: string | null;
-  "Quantity"?: number | null;
-}
 
-interface IRawEquipmentTag {
-  "Category": string;
-  "Notes"?: string | null;
-}
 
 interface IRawEquipment {
   "ObjectID"?: string;
   "Equipment ID": string;
   "Integration Key"?: string | null;
   "Is Inactive?"?: boolean;
-  "Business Unit Unique Name": string;
+  "Business Unit": string;
   "Description": string;
   "Equipment Type ID"?: string | null;
   "Equipment Type Integration Key"?: string | null;
@@ -127,8 +118,6 @@ interface IRawEquipment {
   "Notes"?: string | null;
   "Location Name"?: string | null;
   "Exclude From Field Logs"?: boolean;
-  "Equipment Parts"?: IRawEquipmentPart[] | null;
-  "Equipment Tags"?: IRawEquipmentTag[] | null;
   "Length"?: number | null;
   "Length Unit Of Measure"?: string | null;
   "Width"?: number | null;
@@ -273,7 +262,7 @@ const SPREADSHEET_EQUIPMENT_KEYS: Array<keyof IRawEquipment> = [
   "Equipment ID",
   "Integration Key",
   "Is Inactive?",
-  "Business Unit Unique Name",
+  "Business Unit",
   "Description",
   "Equipment Type ID",
   "Equipment Type Integration Key",
@@ -291,8 +280,6 @@ const SPREADSHEET_EQUIPMENT_KEYS: Array<keyof IRawEquipment> = [
   "Notes",
   "Location Name",
   "Exclude From Field Logs",
-  "Equipment Parts",
-  "Equipment Tags",
   "Length",
   "Length Unit Of Measure",
   "Width",
@@ -521,8 +508,8 @@ function createEquipmentDTO(raw: IRawEquipment): IEquipmentDTO {
     ObjectID: raw.ObjectID,
     EquipmentID: raw["Equipment ID"],
     IntegrationKey: raw["Integration Key"],
-    IsInactive: raw["Is Inactive"],
-    BusinessUnitUniqueName: raw["Business Unit Unique Name"],
+    IsInactive: raw["Is Inactive?"],
+    BusinessUnitUniqueName: raw["Business Unit"],
     Description: raw["Description"],
     EquipmentTypeID: raw["Equipment Type ID"],
     EquipmentTypeIntegrationKey: raw["Equipment Type Integration Key"],
@@ -604,8 +591,8 @@ function createRawEquipment(dto: IEquipmentDTO): IRawEquipment {
     "ObjectID": dto.ObjectID,
     "Equipment ID": dto.EquipmentID,
     "Integration Key": dto.IntegrationKey,
-    "Is Inactive": dto.IsInactive,
-    "Business Unit Unique Name": dto.BusinessUnitUniqueName,
+    "Is Inactive?": dto.IsInactive,
+    "Business Unit": dto.BusinessUnitUniqueName,
     "Description": dto.Description,
     "Equipment Type ID": dto.EquipmentTypeID,
     "Equipment Type Integration Key": dto.EquipmentTypeIntegrationKey,
