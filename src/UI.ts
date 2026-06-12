@@ -11,15 +11,21 @@ function onOpen() {
     .addItem("Update Users", "UpdateUsers")
   const employeeMenu = ui.createMenu("Employees")
     .addItem("Get Employees", "DisplayEmployeeFilterBuilder")
+    .addItem("Create Employees", "CreateEmployees")
+    .addItem("Update Employees", "UpdateEmployees")
   const equipmentMenu = ui.createMenu("Equipment")
     .addItem("Get Equipment", "DisplayEquipmentFilterBuilder")
     .addItem("Create Equipment", "CreateEquipment")
     .addItem("Update Equipment", "UpdateEquipment")
-    
+  const materialMenu = ui.createMenu("Materials")
+    .addItem("Get Materials", "DisplayMaterialsFilterBuilder")
+    .addItem("Create Materials", "CreateMaterials")
+    .addItem("Update Materials", "UpdateMaterials")
   ui.createMenu('Run Scripts')
     .addSubMenu(userMenu)
     .addSubMenu(employeeMenu)
     .addSubMenu(equipmentMenu)
+    .addSubMenu(materialMenu)
     .addToUi()
 
 }

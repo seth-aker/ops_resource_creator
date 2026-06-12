@@ -380,7 +380,7 @@ function GetEquipment(options: GetOptions) {
   const currentSpreadSheetData = getSpreadSheetData<IRawEquipment>("Equipment")
   const ui = SpreadsheetApp.getUi();
   if(currentSpreadSheetData.length > 0) {
-    const response = ui.alert("The Equipment spreadsheet already has data. This will be overwritten. Do you want to contiune?",
+    const response = ui.alert("WARNING: any existing data will be overwritten. Do you want to continue?",
       ui.ButtonSet.YES_NO
     )
     if(response === ui.Button.NO) {
@@ -554,6 +554,8 @@ function CreateEquipment() {
       const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
       logEvent([`Some rows failed!:`, ...failedResults])
       highlightRows(failedRows.map(each => each + 2), 'red');
+    } else {
+      logEvent("All equipment created successfully!")
     }
     logEvent("Script Complete!")
     SpreadsheetApp.getUi().alert("Script Complete!")

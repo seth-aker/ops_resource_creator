@@ -177,7 +177,7 @@ function GetEmployees(options: GetOptions) {
   const currentSpreadSheetData = getSpreadSheetData<IRawEmployee>("Employees")
   const ui = SpreadsheetApp.getUi();
   if(currentSpreadSheetData.length > 0) {
-    const response = ui.alert("The Employees spreadsheet already has data. This will be overwritten. Do you want to contiune?",
+    const response = ui.alert("WARNING: any existing data will be overwritten. Do you want to continue?",
       ui.ButtonSet.YES_NO
     )
     if(response === ui.Button.NO) {
@@ -204,6 +204,7 @@ function GetEmployees(options: GetOptions) {
     }
   })
 
+  // arranges each row to match the order of the headers in the spreadsheet.
   const rowValues = employees.map(e => {
     const values = createRawEmployee(e)
     return headerValues.map(key => values[key] ?? "")
@@ -214,6 +215,155 @@ function GetEmployees(options: GetOptions) {
   
   logEvent("Script Complete!")
   ui.alert("Script Complete!")
+  setIsScriptFinished(true)
+}
+
+function CreateEmployees() {
+  try{
+    setIsScriptFinished(false);
+    clearScriptProgress()
+    setCurrentScript("CreateEmployees")
+    openProgressSidebar("Creating Employees");
+    
+    logEvent("Starting Create Employees Script")
+    const token = getOpsToken()
+    const baseUrl = getBaseURL()
+    const employeeData = getSpreadSheetData<IRawEmployee>('Employees')
+    if(!employeeData || employeeData.length === 0) {
+      SpreadsheetApp.getUi().alert("No data found to send!")
+      setIsScriptFinished(false);
+      return
+    }
+
+    const url = baseUrl + "/employee"
+    const headers = createHeaders(token);
+    const userDTOs = employeeData.map((row) => {
+        return createEmployeeDTO(row);
+      })
+    const batchOptions = userDTOs.map(row => {
+      const options = {
+        url,
+        method: 'post' as const,
+        headers,
+        payload: JSON.stringify(row),
+        muteHttpExceptions: true
+      }
+      return options;
+    })
+    logEvent(`Uploading ${batchOptions.length} employees...`)
+    const results = batchFetch(batchOptions);
+    
+    const failedRows: number[] = []
+    results.forEach((result, idx) => {
+      const code = result.getResponseCode();
+      if(code >= 400) {
+        failedRows.push(idx);
+        writeLogToSpreadsheet(`${code} Error: ${result.getContentText()}`)
+      }
+    })
+    
+    if(failedRows.length > 0) {
+      const errorMessages = failedRows.map(idx => `${results[idx].getResponseCode()} Error: ${results[idx].getContentText()}`)
+      const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
+      logEvent([`Some rows failed!:`, ...failedResults])
+      highlightRows(failedRows.map(each => each + 2), 'red');
+    } else {
+      logEvent("All employees created successfully!")
+    }
+    logEvent("Script Complete!")
+    SpreadsheetApp.getUi().alert("Script Complete!")
+    setIsScriptFinished(true);
+  } catch (err) {
+    setIsScriptFinished(true)
+    throw err
+  }
+}
+
+function UpdateEmployees() {
+  setIsScriptFinished(false);
+  clearScriptProgress()
+  setCurrentScript("UpdateEmployees")
+  openProgressSidebar("Updating Employees");
+
+  logEvent("Starting Update Employees Script")
+
+  const token = getOpsToken()
+  const baseUrl = getBaseURL()
+  
+  const employeeData = getSpreadSheetData<IRawEmployee>('Employees')
+  if(!employeeData || employeeData.length === 0) {
+    SpreadsheetApp.getUi().alert("No data found to send!")
+    setIsScriptFinished(false);
+    return;
+  }
+
+  const url = baseUrl + "/employee"
+  const headers = createHeaders(token);
+  const employeeDTO = employeeData.map(createEmployeeDTO)
+  let payloads: IEmployeeDTO[] = []
+  // If not every row has an object ID, try to match them up to existing employees in the system by Id and int key
+  if(!employeeDTO.every(entry => entry.ObjectID && entry.ObjectID.length > 0)) {
+    const getOptions = {
+      headers,
+      method: 'get' as const,
+      muteHttpExceptions: true
+    }
+    const existingEmployees = getDatabaseItems<IMaterialDTO>(url, getOptions)
+    payloads = employeeDTO.map((each, idx) => {
+      const employeeId = each.EmployeeID
+      const intKey = each.IntegrationKey
+      const existing = existingEmployees.find((m) => {
+        const idMatches = employeeId === m.MaterialID
+        if(m.IntegrationKey) {
+          return idMatches && m.IntegrationKey === intKey
+        } else {
+          return idMatches
+        }
+      })
+      if(!existing) {
+        const errorMessage = `Error: Could not find existing employee with id: ${employeeId}${each.IntegrationKey ? ` and Integration Key: ${each.IntegrationKey}`: ""}`
+        logEvent(errorMessage)
+        highlightRows([idx + 2], 'red')
+        throw new Error(errorMessage)
+      }
+      return {
+        ...existing,
+        ...each
+      }
+    })
+  } else {
+    payloads = employeeDTO
+  }
+  const batchOptions = payloads.map(row => {
+    const options = {
+      url,
+      method: 'put' as const,
+      headers,
+      payload: JSON.stringify(row),
+      muteHttpExceptions: true
+    }
+    return options;
+  })
+  logEvent(`Updating ${batchOptions.length} employees...`)
+  const results = batchFetch(batchOptions);
+  const failed = [] as number[]
+  
+  results.forEach((res, idx) => {
+    const code = res.getResponseCode()
+    if(code > 299) {
+      writeLogToSpreadsheet(`Error Code: ${code}, Message: ${res.getContentText()}`)
+      failed.push(idx)
+    }
+  })
+  if(failed.length > 0) {
+    const failureMessages = failed.map(idx => `Row ${idx + 2}: ${results[idx].getContentText()}`)
+    logEvent(["Some rows failed", ...failureMessages])
+    highlightRows(failed.map(f => f + 2), 'red')
+  } else {
+    logEvent("All employees updated successfully!")
+  }
+  logEvent("Script Complete")
+  SpreadsheetApp.getUi().alert("Script Complete!")
   setIsScriptFinished(true)
 }
 

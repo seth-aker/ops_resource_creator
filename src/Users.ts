@@ -116,7 +116,7 @@ function GetUsers(options: GetUserOptions) {
   const currentSpreadSheetData = getSpreadSheetData<IRawUserData>("Users")
   const ui = SpreadsheetApp.getUi();
   if(currentSpreadSheetData.length > 0) {
-    const response = ui.alert("The User spreadsheet already has data. This will be overwritten. Do you want to contiune?",
+    const response = ui.alert("WARNING: any existing data will be overwritten. Do you want to continue?",
       ui.ButtonSet.YES_NO
     )
     if(response === ui.Button.NO) {
@@ -143,6 +143,7 @@ function GetUsers(options: GetUserOptions) {
     }
   })
 
+  // arranges each row to match the order of the headers in the spreadsheet.
   const rowValues = users.map(e => {
     const values = createRawUsers(e)
     return headerValues.map(key => values[key] ?? "")
@@ -170,6 +171,7 @@ function CreateUsers() {
     if(!userData || userData.length === 0) {
       SpreadsheetApp.getUi().alert("No data found to send!")
       setIsScriptFinished(false);
+      return;
     }
 
     const url = baseUrl + "/user"
@@ -204,6 +206,8 @@ function CreateUsers() {
       const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
       logEvent([`Some rows failed!:`, ...failedResults])
       highlightRows(failedRows.map(each => each + 2), 'red');
+    } else {
+      logEvent("All users created successfully!")
     }
     logEvent("Script Complete!")
     SpreadsheetApp.getUi().alert("Script Complete!")
@@ -228,6 +232,7 @@ function UpdateUsers() {
   if(!userData || userData.length === 0) {
     SpreadsheetApp.getUi().alert("No data found to send!")
     setIsScriptFinished(false);
+    return;
   }
 
   const url = baseUrl + "/user"
