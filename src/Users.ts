@@ -290,6 +290,8 @@ function UpdateUsers() {
     const failureMessages = failed.map(idx => `Row ${idx + 2}: ${results[idx].getContentText()}`)
     logEvent(["Some rows failed", ...failureMessages])
     highlightRows(failed.map(f => f + 2), 'red')
+  } else {
+    logEvent("All users updated successfully!")
   }
   logEvent("Script Complete")
   SpreadsheetApp.getUi().alert("Script Complete!")

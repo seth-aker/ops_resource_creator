@@ -9,6 +9,10 @@ function onOpen() {
     .addItem("Get Users", "DisplayUserFilterBuilder")
     .addItem("Create Users", "CreateUsers")
     .addItem("Update Users", "UpdateUsers")
+  const laborRateClassMenu = ui.createMenu("Labor Rate Classes")
+    .addItem("Get Labor Rate Classes", "DisplayLaborRateClassFilterBuilder")
+    .addItem("Create Labor Rate Classes", "CreateLaborRateClasses")
+    .addItem("Update Labor Rate Classes", "UpdateLaborRateClasses")
   const employeeMenu = ui.createMenu("Employees")
     .addItem("Get Employees", "DisplayEmployeeFilterBuilder")
     .addItem("Create Employees", "CreateEmployees")
@@ -23,9 +27,9 @@ function onOpen() {
     .addItem("Update Materials", "UpdateMaterials")
   ui.createMenu('Run Scripts')
     .addSubMenu(userMenu)
+    .addSubMenu(laborRateClassMenu)
     .addSubMenu(employeeMenu)
     .addSubMenu(equipmentMenu)
     .addSubMenu(materialMenu)
     .addToUi()
-
 }
