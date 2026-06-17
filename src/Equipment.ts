@@ -488,19 +488,21 @@ function UpdateEquipment(_options: UpdateEquipmentOptions) {
     muteHttpExceptions: true
   }))
   logEvent(`Updating ${batchOptions.length} pieces of equipment`)
-  const failed = [] as number[]
-  const responses = batchFetch(batchOptions);
-  responses.forEach((res, idx) => {
-    const code = res.getResponseCode();
-    if(code > 299) {
-      writeLogToSpreadsheet(`Error Code: ${res.getResponseCode()}, Message: ${res.getContentText()}`)
-      failed.push(idx)
-    }
-  })
-  if(failed.length > 0) {
-    const failureMessages = failed.map(idx => `Row ${idx + 2}: ${responses[idx].getContentText()}`)
-    logEvent(["Some rows failed!", ...failureMessages])
-    highlightRows(failed.map(f => f+2), 'red')
+  const results = batchFetch(batchOptions);
+    
+    const failedRows: number[] = []
+    const failureMessages: string[] = [];
+    results.forEach((result, idx) => {
+      const code = result.getResponseCode();
+      if(code >= 400) {
+        failedRows.push(idx);
+        failureMessages.push(`Row ${idx + 2}: [${code} Error]: ${result.getContentText()}`)
+      }
+    })
+    
+    if(failedRows.length > 0) {
+      logEvent([`Some rows failed!:`, ...failureMessages])
+      highlightRows(failedRows.map(f => f+2), 'red')
   }
   logEvent("Script Complete!")
   SpreadsheetApp.getUi().alert("Script Complete!")
@@ -541,18 +543,17 @@ function CreateEquipment() {
     const results = batchFetch(batchOptions);
     
     const failedRows: number[] = []
+    const failureMessages: string[] = [];
     results.forEach((result, idx) => {
       const code = result.getResponseCode();
       if(code >= 400) {
         failedRows.push(idx);
-        writeLogToSpreadsheet(`${code} Error: ${result.getContentText()}`)
+        failureMessages.push(`Row ${idx + 2}: [${code} Error]: ${result.getContentText()}`)
       }
     })
     
     if(failedRows.length > 0) {
-      const errorMessages = failedRows.map(idx => `${results[idx].getResponseCode()} Error: ${results[idx].getContentText()}`)
-      const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
-      logEvent([`Some rows failed!:`, ...failedResults])
+      logEvent([`Some rows failed!:`, ...failureMessages])
       highlightRows(failedRows.map(each => each + 2), 'red');
     } else {
       logEvent("All equipment created successfully!")

@@ -254,18 +254,17 @@ function CreateEmployees() {
     const results = batchFetch(batchOptions);
     
     const failedRows: number[] = []
+    const failureMessages: string[] = [];
     results.forEach((result, idx) => {
       const code = result.getResponseCode();
       if(code >= 400) {
         failedRows.push(idx);
-        writeLogToSpreadsheet(`${code} Error: ${result.getContentText()}`)
+        failureMessages.push(`Row ${idx + 2}: [${code} Error]: ${result.getContentText()}`)
       }
     })
     
     if(failedRows.length > 0) {
-      const errorMessages = failedRows.map(idx => `${results[idx].getResponseCode()} Error: ${results[idx].getContentText()}`)
-      const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
-      logEvent([`Some rows failed!:`, ...failedResults])
+      logEvent([`Some rows failed!:`, ...failureMessages])
       highlightRows(failedRows.map(each => each + 2), 'red');
     } else {
       logEvent("All employees created successfully!")
@@ -348,16 +347,17 @@ function UpdateEmployees() {
   const results = batchFetch(batchOptions);
   const failed = [] as number[]
   
-  results.forEach((res, idx) => {
-    const code = res.getResponseCode()
-    if(code > 299) {
-      writeLogToSpreadsheet(`Error Code: ${code}, Message: ${res.getContentText()}`)
-      failed.push(idx)
-    }
-  })
-  if(failed.length > 0) {
-    const failureMessages = failed.map(idx => `Row ${idx + 2}: ${results[idx].getContentText()}`)
-    logEvent(["Some rows failed", ...failureMessages])
+  const failureMessages: string[] = [];
+    results.forEach((result, idx) => {
+      const code = result.getResponseCode();
+      if(code >= 400) {
+        failed.push(idx);
+        failureMessages.push(`Row ${idx + 2}: [${code} Error]: ${result.getContentText()}`)
+      }
+    })
+    
+    if(failed.length > 0) {
+    logEvent([`Some rows failed!:`, ...failureMessages])
     highlightRows(failed.map(f => f + 2), 'red')
   } else {
     logEvent("All employees updated successfully!")

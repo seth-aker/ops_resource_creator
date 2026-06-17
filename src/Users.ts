@@ -134,7 +134,9 @@ function GetUsers(options: GetUserOptions) {
     headers,
     muteHttpExceptions: true
   })
+    .filter(u => u.ObjectID !== '00000001-0000-0000-0000-000000000000'); // Filter out internal system account user
   logEvent(`${users.length} users recieved.`)
+  
   const headerValues = usersSheet.getDataRange().getValues()[0] as typeof USER_SPREADSHEET_KEYS
   USER_SPREADSHEET_KEYS.forEach((key) => {
     if(!headerValues.includes(key)) {
@@ -193,18 +195,17 @@ function CreateUsers() {
     const results = batchFetch(batchOptions);
     
     const failedRows: number[] = []
+    const failureMessages: string[] = [];
     results.forEach((result, idx) => {
       const code = result.getResponseCode();
       if(code >= 400) {
         failedRows.push(idx);
-        writeLogToSpreadsheet(`${code} Error: ${result.getContentText()}`)
+        failureMessages.push(`Row ${idx + 2}: [${code} Error] ${result.getContentText()}`)
       }
     })
     
     if(failedRows.length > 0) {
-      const errorMessages = failedRows.map(idx => `${results[idx].getResponseCode()} Error: ${results[idx].getContentText()}`)
-      const failedResults = errorMessages.map((message, idx) => `Row ${failedRows[idx] + 2}: ${message}`) 
-      logEvent([`Some rows failed!:`, ...failedResults])
+      logEvent([`Some rows failed!:`, ...failureMessages])
       highlightRows(failedRows.map(each => each + 2), 'red');
     } else {
       logEvent("All users created successfully!")
@@ -257,6 +258,7 @@ function UpdateUsers() {
         highlightRows([idx + 2], 'red')
         throw new Error(errorMessage)
       }
+      delete existing.WindowsAccountName // This is done to prevent TID from complaining about this. It throws an error if it exists on TID enable systems
       return {
         ...existing,
         ...each
@@ -278,16 +280,15 @@ function UpdateUsers() {
   logEvent("Updating users...")
   const results = batchFetch(batchOptions);
   const failed = [] as number[]
-  
+  const failureMessages: string[] = []
   results.forEach((res, idx) => {
     const code = res.getResponseCode()
     if(code > 299) {
-      writeLogToSpreadsheet(`Error Code: ${code}, Message: ${res.getContentText()}`)
+      failureMessages.push(`Row: ${idx + 2}, [${code} Error]: ${res.getContentText()}`)
       failed.push(idx)
     }
   })
   if(failed.length > 0) {
-    const failureMessages = failed.map(idx => `Row ${idx + 2}: ${results[idx].getContentText()}`)
     logEvent(["Some rows failed", ...failureMessages])
     highlightRows(failed.map(f => f + 2), 'red')
   } else {
@@ -314,7 +315,9 @@ function createUserDTO(row: IRawUserData) {
     MaintainMechanicLicense: row["Maintain Mechanic License"] ? LICENSE_MAP.get(row["Maintain Mechanic License"]) : undefined,
     MaintainManagerLicense: row["Maintain Manager License"] ? LICENSE_MAP.get(row["Maintain Manager License"]) : undefined,
     EmployeeIntegrationKey: row["Employee Integration Key"],
-    IntegrationMapping: row["Integration Mapping"]
+    IntegrationMapping: row["Integration Mapping"],
+    WindowsAccountName: row["Windows Account Name"],
+    ObjectID: row.ObjectID
   } as IUserDTO
 }
 function createRawUsers(u: IUserDTO): IRawUserData {
@@ -334,6 +337,7 @@ function createRawUsers(u: IUserDTO): IRawUserData {
     "Maintain Mechanic License": licenseOptions.find(([_key, val]) => u.MaintainMechanicLicense === val)?.[0],
     "Employee Integration Key": u.EmployeeIntegrationKey,
     "Integration Mapping": u.IntegrationMapping,
+    "Windows Account Name": u.WindowsAccountName,
     "ObjectID": u.ObjectID
   }
 }
