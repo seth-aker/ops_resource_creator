@@ -47,7 +47,7 @@ function DisplayLaborRateClassFilterBuilder() {
 }
 
 function GetLaborRateClasses(options: GetOptions) {
-   setIsScriptFinished(false);
+  setIsScriptFinished(false);
   clearScriptProgress()
   setCurrentScript("GetUsers")
   openProgressSidebar("Getting Users");
